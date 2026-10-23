@@ -29,7 +29,9 @@ def update_my_availability(
     current: CurrentProfile = Depends(require_role("service_provider")),
 ):
     provider = service_providers_service.require_provider_by_profile_id(current.id)
-    return availability_service.update_availability(availability_id, provider["id"], payload.model_dump())
+    return availability_service.update_availability(
+        availability_id, provider["id"], payload.model_dump(exclude_unset=True)
+    )
 
 
 @router.delete("/me/availability/{availability_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -42,4 +44,12 @@ def delete_my_availability(
 
 @router.get("/providers/{provider_id}/availability", response_model=list[AvailabilityOut])
 def list_provider_availability(provider_id: str):
-    return availability_service.list_public_availability(provider_id)
+    resolved_id = service_providers_service.require_published(provider_id)
+    return availability_service.list_public_availability(resolved_id)
+
+
+@router.get("/providers/{provider_id}/busy-times", response_model=list[dict[str, str]])
+def provider_busy_times(provider_id: str):
+    from app.services.bookings import public_busy_times
+    resolved_id = service_providers_service.require_published(provider_id)
+    return public_busy_times(resolved_id)

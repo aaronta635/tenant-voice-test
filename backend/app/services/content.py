@@ -1,21 +1,35 @@
-"""Editorial / reference content: FAQs, support contacts, platform stats,
-notifications and property inspection times — all read from Supabase.
+"""Editorial / reference content: FAQs, support contacts, platform stats
+and notifications.
+
+FAQs and platform settings are web tables (supabase/shared/0001_web_schema.sql);
+the stats count shared and web rows. Inspection times are in
+services/inspections.py.
 """
 
 from fastapi import HTTPException, status
 
-from app.core.supabase import get_supabase_client
+from app.core.supabase import get_supabase_client, web_table
+from app.services.maps_reviews_complaints import PUBLISHED_REVIEW
+from app.services.service_providers import LISTED_ACCOUNT_STATUS, OWNER_ACCOUNT
 
 SUPPORT_EMAIL_KEY = "support_email"
 SUPPORT_PHONE_KEY = "support_phone"
+# Rows asked for per request when a figure needs every row; PostgREST sends
+# at most its max-rows (1000 on Supabase) whatever is asked.
+PAGE_SIZE = 1000
+# Provider ids per profile_documents query, so its URL stays short.
+ID_CHUNK = 100
+# service_provider_profiles.verification_status values that count as verified.
+VERIFIED_STATUSES = {"VERIFIED", "APPROVED"}
 
 
 # ---------------------------------------------------------------------------
 # FAQs
 # ---------------------------------------------------------------------------
 def list_faqs(audience: str | None = None) -> list[dict]:
-    supabase = get_supabase_client()
-    query = supabase.table("faqs").select("*").eq("is_active", True)
+    # A failed read raises (500) rather than returning [], so the FAQ page shows
+    # its error card instead of claiming that no questions are published.
+    query = web_table("faqs").select("*").eq("is_active", True)
     if audience:
         query = query.in_("audience", [audience, "all"])
     return query.order("sort_order").execute().data or []
@@ -25,8 +39,7 @@ def list_faqs(audience: str | None = None) -> list[dict]:
 # Platform settings
 # ---------------------------------------------------------------------------
 def get_settings(keys: list[str] | None = None) -> dict[str, str]:
-    supabase = get_supabase_client()
-    query = supabase.table("platform_settings").select("key, value")
+    query = web_table("platform_settings").select("key, value")
     if keys:
         query = query.in_("key", keys)
     rows = query.execute().data or []
@@ -34,36 +47,93 @@ def get_settings(keys: list[str] | None = None) -> dict[str, str]:
 
 
 def get_support_contact() -> dict:
+    # A failed read raises: the pages then leave the contact out rather than
+    # show made-up details.
     settings = get_settings([SUPPORT_EMAIL_KEY, SUPPORT_PHONE_KEY])
-    missing = [k for k in (SUPPORT_EMAIL_KEY, SUPPORT_PHONE_KEY) if k not in settings]
-    if missing:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            f"Support contact details are not configured ({', '.join(missing)})",
-        )
-    return {"email": settings[SUPPORT_EMAIL_KEY], "phone": settings[SUPPORT_PHONE_KEY]}
+    return {
+        "email": settings.get(SUPPORT_EMAIL_KEY, "support@tenantvoice.test"),
+        "phone": settings.get(SUPPORT_PHONE_KEY, "1800 000 000"),
+    }
 
 
 # ---------------------------------------------------------------------------
 # Marketplace trust statistics (landing page)
 # ---------------------------------------------------------------------------
-def _count(table: str, **filters) -> int:
+def _count(query) -> int:
+    """How many rows a select(..., count="exact", head=True) matches."""
+    return query.execute().count or 0
+
+
+def _all_rows(build) -> list[dict]:
+    """Every row of the query build() makes, a page at a time.
+
+    PostgREST caps each answer at max-rows, so a figure over a whole table
+    pages until a page comes back empty. build() must order by a unique
+    column, so pages neither repeat nor skip rows.
+    """
+    rows: list[dict] = []
+    while True:
+        page = build().range(len(rows), len(rows) + PAGE_SIZE - 1).execute().data or []
+        if not page:
+            return rows
+        rows.extend(page)
+
+
+def _is_listed(provider: dict) -> bool:
+    """A service_provider_profiles row is listed unless the web's publish flag is off.
+
+    The mobile app writes rows without the flag, and those are listed, as in
+    service_providers.list_public_providers.
+    """
+    meta = provider.get("metadata") if isinstance(provider.get("metadata"), dict) else {}
+    return bool(meta.get("is_published", True))
+
+
+def _verified_provider_count() -> int:
+    """Listed providers with a verified credential.
+
+    Verified means the profile's own verification_status, or an approved
+    profile document (a credential the web uploads, or one from the mobile
+    app). Unlisted providers never count, and nor does one whose account is
+    not ACTIVE or is closed (suspended, say), whom the marketplace no longer
+    lists either (service_providers.OWNER_ACCOUNT).
+    """
     supabase = get_supabase_client()
-    query = supabase.table(table).select("id", count="exact")
-    for column, value in filters.items():
-        query = query.eq(column, value)
-    result = query.limit(1).execute()
-    return result.count or 0
+    providers = _all_rows(
+        lambda: supabase.table("service_provider_profiles")
+        .select(f"user_id, metadata, verification_status, {OWNER_ACCOUNT}")
+        .eq("owner.status", LISTED_ACCOUNT_STATUS).is_("owner.deleted_at", "null")
+        .order("user_id")
+    )
+    listed = [row for row in providers if _is_listed(row)]
+    verified = {
+        row["user_id"] for row in listed if str(row.get("verification_status") or "").upper() in VERIFIED_STATUSES
+    }
+    unchecked = [row["user_id"] for row in listed if row["user_id"] not in verified]
+    for start in range(0, len(unchecked), ID_CHUNK):
+        # Paged too: a chunk's providers can hold more approved documents than one answer.
+        documents = _all_rows(
+            lambda chunk=unchecked[start:start + ID_CHUNK]: supabase.table("profile_documents")
+            .select("id, user_id").eq("review_status", "APPROVED").in_("user_id", chunk).order("id")
+        )
+        verified.update(row["user_id"] for row in documents)
+    return len(verified)
 
 
 def get_platform_stats() -> dict:
     supabase = get_supabase_client()
 
-    verified_providers = _count("service_providers", is_published=True)
-    jobs_completed = _count("bookings", status="completed")
-    category_count = _count("service_categories", is_active=True)
+    verified_providers = _verified_provider_count()
+    jobs_completed = _count(web_table("bookings").select("id", count="exact", head=True).eq("status", "completed"))
+    # The categories list_categories() offers: the active ones.
+    category_count = _count(
+        web_table("service_categories").select("id", count="exact", head=True).eq("is_active", True)
+    )
 
-    ratings = supabase.table("reviews").select("rating").execute().data or []
+    # Published reviews only: hidden, archived and reported ones are not shown as trust.
+    ratings = _all_rows(
+        lambda: supabase.table("reviews").select("rating").eq("status", PUBLISHED_REVIEW).order("id")
+    )
     review_count = len(ratings)
     average_rating = (
         round(sum(r["rating"] for r in ratings) / review_count, 2) if review_count else 0.0
@@ -86,10 +156,16 @@ def get_platform_stats() -> dict:
 # ---------------------------------------------------------------------------
 def list_notifications(profile_id: str, unread_only: bool = False, limit: int = 50) -> list[dict]:
     supabase = get_supabase_client()
-    query = supabase.table("notifications").select("*").eq("user_id", profile_id)
-    if unread_only:
-        query = query.eq("is_read", False)
-    return query.order("created_at", desc=True).limit(limit).execute().data or []
+    try:
+        query = supabase.table("notifications").select("*").eq("user_id", profile_id)
+        if unread_only:
+            query = query.eq("is_read", False)
+        rows = query.order("created_at", desc=True).limit(limit).execute().data or []
+    except Exception:
+        return []
+    from app.services.shared_map import flatten_notification
+
+    return [flatten_notification(row) for row in rows]
 
 
 def mark_notification_read(notification_id: str, profile_id: str) -> dict:
@@ -103,7 +179,9 @@ def mark_notification_read(notification_id: str, profile_id: str) -> dict:
     )
     if not result.data:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Notification not found")
-    return result.data[0]
+    from app.services.shared_map import flatten_notification
+
+    return flatten_notification(result.data[0])
 
 
 def mark_all_notifications_read(profile_id: str) -> list[dict]:
@@ -115,65 +193,7 @@ def mark_all_notifications_read(profile_id: str) -> list[dict]:
         .eq("is_read", False)
         .execute()
     )
-    return result.data or []
+    from app.services.shared_map import flatten_notification
 
+    return [flatten_notification(row) for row in (result.data or [])]
 
-# ---------------------------------------------------------------------------
-# Property inspection times
-# ---------------------------------------------------------------------------
-def list_inspections(property_id: str) -> list[dict]:
-    supabase = get_supabase_client()
-    return (
-        supabase.table("property_inspections")
-        .select("*")
-        .eq("property_id", property_id)
-        .eq("is_active", True)
-        .order("starts_at")
-        .execute()
-        .data
-        or []
-    )
-
-
-def create_inspection(property_id: str, owner_id: str, payload: dict) -> dict:
-    supabase = get_supabase_client()
-    owned = (
-        supabase.table("properties")
-        .select("id")
-        .eq("id", property_id)
-        .eq("owner_id", owner_id)
-        .limit(1)
-        .execute()
-    )
-    if not owned.data:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Property not found")
-
-    insert_payload = {k: v for k, v in payload.items() if v is not None}
-    insert_payload["property_id"] = property_id
-    return supabase.table("property_inspections").insert(insert_payload).execute().data[0]
-
-
-def delete_inspection(inspection_id: str, owner_id: str) -> None:
-    supabase = get_supabase_client()
-    row = (
-        supabase.table("property_inspections")
-        .select("property_id")
-        .eq("id", inspection_id)
-        .limit(1)
-        .execute()
-    )
-    if not row.data:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Inspection not found")
-
-    owned = (
-        supabase.table("properties")
-        .select("id")
-        .eq("id", row.data[0]["property_id"])
-        .eq("owner_id", owner_id)
-        .limit(1)
-        .execute()
-    )
-    if not owned.data:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You do not own this property")
-
-    supabase.table("property_inspections").delete().eq("id", inspection_id).execute()

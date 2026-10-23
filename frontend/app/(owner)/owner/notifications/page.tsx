@@ -1,7 +1,12 @@
-export default function NotificationsPage() {
+'use client';
+
+import NotificationsView from '@/app/components/network/NotificationsView';
+
+export default function OwnerNotificationsPage() {
   return (
-    <div>
-      <h1>Notifications</h1>
-    </div>
+    <NotificationsView
+      title="Notifications"
+      subtitle="Application updates, connection requests, and account alerts."
+    />
   );
 }

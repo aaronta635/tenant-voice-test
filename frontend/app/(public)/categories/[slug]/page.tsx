@@ -1,39 +1,52 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import CategoryFiltersPanel from '@/app/components/providers/CategoryFiltersPanel';
-import { api, ApiError, safe } from '@/app/lib/api';
+import LoadErrorCard from '@/app/components/ui/LoadErrorCard';
+import { api, ApiError } from '@/app/lib/api';
 import { deriveCategoryFilters } from '@/app/lib/provider-view';
 import { getRoleHomeHref } from '@/app/lib/session-role';
+import { listAllPublicProviders } from '../public-providers';
 
 export const dynamic = 'force-dynamic';
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  try { return { title: (await api.categories.get((await params).slug)).name }; }
+  catch { return { title: 'Provider category' }; }
+}
+
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ location?: string; search?: string }>;
 };
 
-export default async function CategoryListingPage({ params, searchParams }: Props) {
+export default async function CategoryListingPage({ params }: Props) {
   const { slug } = await params;
-  const { location, search } = await searchParams;
 
   let category;
   try {
     category = await api.categories.get(slug);
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) notFound();
-    throw error;
+    return (
+      <div className="mx-auto max-w-[1200px] p-6">
+        <Link href="/categories" className="inline-flex min-h-11 items-center font-semibold text-primary-strong underline">All categories</Link>
+        <h1 className="mt-4 mb-5 font-heading text-3xl font-bold">Provider category</h1>
+        <LoadErrorCard
+          title="Couldn't load this category"
+          message="The category list is unavailable right now. Please try again."
+        />
+      </div>
+    );
   }
 
-  const providers = await safe(
-    api.providers.listPublic({ category: slug, limit: 100 }),
-    [],
-  );
+  let providers;
+  try { providers = await listAllPublicProviders({ category: slug }); }
+  catch { return <div className="mx-auto max-w-[1200px] p-6"><h1 className="mb-5 font-heading text-3xl font-bold">{category.name}</h1><LoadErrorCard title="Couldn't load providers" message="Please try again to see providers in this category." /></div>; }
   const homeHref = await getRoleHomeHref();
   const filters = deriveCategoryFilters(providers);
 
   return (
     <div className="mx-auto max-w-[1440px] px-6 py-8 lg:px-14">
-      <nav className="text-sm text-[#8c97a2]">
+      <nav className="text-sm text-text-body">
         <Link href={homeHref} className="hover:text-[#1b1b1f]">
           Home
         </Link>
@@ -48,8 +61,6 @@ export default async function CategoryListingPage({ params, searchParams }: Prop
       <CategoryFiltersPanel
         category={category}
         providers={providers}
-        initialLocation={location ?? ''}
-        initialSearch={search ?? ''}
         {...filters}
       />
     </div>

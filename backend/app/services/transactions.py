@@ -1,4 +1,11 @@
-from app.core.supabase import get_supabase_client
+"""A provider's ledger rows (web.transactions) for the finance table (migration plan §3 c3)."""
+
+from app.core.supabase import web_table
+from app.services import _common, provider_services
+from app.services import bookings as bookings_service
+
+# In the web schema: query it with web_table(TABLE).
+TABLE = "transactions"
 
 
 def _decorate(transactions: list[dict]) -> list[dict]:
@@ -6,66 +13,30 @@ def _decorate(transactions: list[dict]) -> list[dict]:
     if not transactions:
         return []
 
-    supabase = get_supabase_client()
-    booking_ids = list({t["booking_id"] for t in transactions if t.get("booking_id")})
-
-    booking_by_id: dict[str, dict] = {}
-    client_by_id: dict[str, dict] = {}
-    service_title: dict[str, str] = {}
-
-    if booking_ids:
-        bookings = (
-            supabase.table("bookings")
-            .select("id, client_id, service_id, status")
-            .in_("id", booking_ids)
-            .execute()
-            .data
-            or []
-        )
-        booking_by_id = {b["id"]: b for b in bookings}
-
-        client_ids = list({b["client_id"] for b in bookings})
-        if client_ids:
-            profiles = (
-                supabase.table("profiles")
-                .select("id, full_name, avatar_url")
-                .in_("id", client_ids)
-                .execute()
-                .data
-                or []
-            )
-            client_by_id = {p["id"]: p for p in profiles}
-
-        service_ids = list({b["service_id"] for b in bookings if b.get("service_id")})
-        if service_ids:
-            services = (
-                supabase.table("provider_services")
-                .select("id, title")
-                .in_("id", service_ids)
-                .execute()
-                .data
-                or []
-            )
-            service_title = {s["id"]: s["title"] for s in services}
+    booking_ids = {t["booking_id"] for t in transactions if t.get("booking_id")}
+    bookings = _common.select_in(
+        lambda: web_table(bookings_service.TABLE).select("id, client_id, service_id, status").order("id"),
+        "id",
+        booking_ids,
+    )
+    booking_by_id = {b["id"]: b for b in bookings}
+    # Clients are users rows; someone whose account is gone is unnamed.
+    client_by_id = bookings_service.people_by_id(b["client_id"] for b in bookings)
+    services = provider_services.services_by_id({b["service_id"] for b in bookings if b.get("service_id")})
 
     for transaction in transactions:
         booking = booking_by_id.get(transaction.get("booking_id")) or {}
         client = client_by_id.get(booking.get("client_id")) or {}
-        transaction["client_name"] = client.get("full_name")
+        transaction["client_name"] = client.get("full_name") or None
         transaction["client_avatar_url"] = client.get("avatar_url")
-        transaction["service_title"] = service_title.get(booking.get("service_id"))
+        transaction["service_title"] = (services.get(booking.get("service_id")) or {}).get("title")
         transaction["booking_status"] = booking.get("status")
 
     return transactions
 
 
 def list_my_transactions(provider_id: str) -> list[dict]:
-    supabase = get_supabase_client()
-    result = (
-        supabase.table("transactions")
-        .select("*")
-        .eq("provider_id", provider_id)
-        .order("created_at", desc=True)
-        .execute()
+    rows = _common.select_all(
+        lambda: web_table(TABLE).select("*").eq("provider_id", provider_id).order("created_at", desc=True).order("id")
     )
-    return _decorate(result.data or [])
+    return _decorate(rows)

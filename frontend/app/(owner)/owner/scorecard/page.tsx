@@ -1,10 +1,9 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
+import OwnerScorecards from '@/app/components/owner/OwnerScorecards';
 
-export default function ScorecardPage() {
-  return (
-    <div>
-      <h1>Scorecard</h1>
-      <Link href="/owner/subscription">Subscription</Link>
-    </div>
-  );
+export const metadata: Metadata = { title: 'Scorecards' };
+
+// The scorecard requests tenants sent this owner or agent, to complete or decline (R43).
+export default function OwnerScorecardPage() {
+  return <OwnerScorecards />;
 }

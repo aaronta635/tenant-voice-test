@@ -3,17 +3,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import NoPhotoYet from '@/app/components/rental/NoPhotoYet';
 import Button from '@/app/components/ui/Button';
 import Card from '@/app/components/ui/Card';
 import Input from '@/app/components/ui/Input';
 import { api, ApiError, type Property, type PropertyStatus } from '@/app/lib/api';
-
-const FALLBACK_IMAGE = '/tenant/application-modern-loft.png';
+import { listingPhoto } from '@/app/lib/listing-photo';
+import { localityOf } from '@/app/lib/listings';
+import { isRemoteImage } from '@/app/lib/remote-image';
 
 const featureOptions = ['Pet friendly', 'Parking', 'Furnished', 'Garden', 'Bills included', 'Close to train'];
 const statusOptions = ['Any status', 'Available', 'Rented', 'Off market'];
 const availabilityOptions = ['Any time', 'This month', 'Next month'];
 const sortOptions = ['Best match', 'Lowest rent', 'Highest rent', 'Most bedrooms'];
+
+/** "1 bed", "2 beds", "— beds" when the listing does not say. */
+const rooms = (count: number | null | undefined, room: string) => `${count ?? '—'} ${count === 1 ? room : `${room}s`}`;
 
 const STATUS_FILTER_MAP: Record<string, PropertyStatus> = {
   Available: 'available',
@@ -28,7 +33,7 @@ const STATUS_LABEL_MAP: Record<PropertyStatus, string> = {
 };
 
 function formatAvailableDate(dateStr: string | null): string {
-  if (!dateStr) return 'Contact owner';
+  if (!dateStr) return 'Contact landlord';
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -43,12 +48,25 @@ function isInRelativeMonth(dateStr: string | null, monthOffset: number): boolean
   return date.getFullYear() === target.getFullYear() && date.getMonth() === target.getMonth();
 }
 
-export default function PropertyMarketplace() {
+/** Where a card's address comes from: the street for a signed-in member, else only the suburb. */
+function addressLine(property: Property): string {
+  return property.address_hidden === false ? property.address : localityOf(property) || property.address;
+}
+
+export default function PropertyMarketplace({
+  initialQuery = '',
+  basePath = '/tenant/properties',
+}: {
+  initialQuery?: string;
+  /** Where a card opens its listing: the tenant workspace's page, or the public one. */
+  basePath?: string;
+}) {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [query, setQuery] = useState('');
+  const [queryInput, setQueryInput] = useState<string | null>(null);
+  const query = queryInput ?? initialQuery;
   // null = no cap chosen yet, so nothing is hidden before the user touches the
   // slider. A fixed default silently hid every listing priced above it.
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
@@ -58,17 +76,19 @@ export default function PropertyMarketplace() {
   const [status, setStatus] = useState('Any status');
   const [availability, setAvailability] = useState('Any time');
   const [sortBy, setSortBy] = useState('Best match');
+  const [searchSaved, setSearchSaved] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      setLoading(true);
-      setError(null);
       try {
         const results = await api.properties.listPublic({ limit: 100 });
-        if (!cancelled) setProperties(results);
+        if (!cancelled) {
+          setProperties(results);
+          setError(null);
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : 'Unable to load properties right now.');
@@ -97,7 +117,7 @@ export default function PropertyMarketplace() {
       const amenities = property.amenities ?? [];
       const matchesText =
         !normalised ||
-        `${property.title} ${property.address} ${property.suburb ?? ''} ${amenities.join(' ')}`
+        `${property.title} ${addressLine(property)} ${property.suburb ?? ''} ${amenities.join(' ')}`
           .toLowerCase()
           .includes(normalised);
 
@@ -146,8 +166,8 @@ export default function PropertyMarketplace() {
   }
 
   function resetFilters() {
-    setQuery('');
-    setMaxPrice(900);
+    setQueryInput('');
+    setMaxPrice(null);
     setMinBeds('Any');
     setMinBaths('Any');
     setParking(false);
@@ -155,6 +175,14 @@ export default function PropertyMarketplace() {
     setAvailability('Any time');
     setSortBy('Best match');
     setSelectedFeatures([]);
+    setSearchSaved(false);
+  }
+
+  function saveSearch() {
+    const payload = { query, maxPrice, minBeds, minBaths, parking, status, availability, sortBy, selectedFeatures };
+    localStorage.setItem('tv_saved_property_search', JSON.stringify(payload));
+    setSearchSaved(true);
+    window.setTimeout(() => setSearchSaved(false), 2500);
   }
 
   return (
@@ -165,7 +193,7 @@ export default function PropertyMarketplace() {
             label="Search properties"
             placeholder="Suburb, street, or property name"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => setQueryInput(event.target.value)}
           />
           <div>
             <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.8px] text-[#565d6d]">
@@ -230,7 +258,9 @@ export default function PropertyMarketplace() {
             <Button variant="ghost" className="h-10 rounded-[8px]" onClick={resetFilters}>
               Reset Filters
             </Button>
-            <Button className="h-10 rounded-[8px]">Save Search</Button>
+            <Button className="h-10 rounded-[8px]" onClick={saveSearch}>
+              {searchSaved ? 'Search saved' : 'Save Search'}
+            </Button>
           </div>
         </div>
       </Card>
@@ -256,12 +286,23 @@ export default function PropertyMarketplace() {
       ) : filtered.length > 0 ? (
         <div className="grid gap-5 xl:grid-cols-2">
           {filtered.map((property) => {
-            const image = property.photo_urls?.[0] || FALLBACK_IMAGE;
+            const photo = listingPhoto(property.photo_urls);
             return (
-              <Link key={property.id} href={`/tenant/properties/${property.id}`}>
+              <Link key={property.id} href={`${basePath}/${property.id}`}>
                 <Card className="h-full overflow-hidden rounded-[16px] border border-[#dee1e6] transition hover:border-primary/40 hover:shadow-[0_12px_28px_rgba(23,26,31,0.10)]">
                   <div className="relative h-56 bg-[#f3f4f6]">
-                    <Image src={image} alt="" fill sizes="(min-width: 1280px) 520px, 100vw" className="object-cover" />
+                    {photo ? (
+                      <Image
+                        src={photo}
+                        alt=""
+                        fill
+                        sizes="(min-width: 1280px) 520px, 100vw"
+                        className="object-cover"
+                        unoptimized={isRemoteImage(photo)}
+                      />
+                    ) : (
+                      <NoPhotoYet />
+                    )}
                     <span className="absolute left-4 top-4 rounded-full bg-white px-3 py-1 text-xs font-bold text-primary shadow">
                       {STATUS_LABEL_MAP[property.status]}
                     </span>
@@ -270,11 +311,7 @@ export default function PropertyMarketplace() {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h2 className="font-heading text-xl font-bold">{property.title}</h2>
-                        <p className="mt-1 text-sm text-[#565d6d]">
-                          {property.address}
-                          {property.suburb ? `, ${property.suburb}` : ''}
-                          {property.state ? ` ${property.state}` : ''}
-                        </p>
+                        <p className="mt-1 text-sm text-[#565d6d]">{addressLine(property)}</p>
                       </div>
                       <p className="text-right font-heading text-2xl font-bold text-primary">
                         ${property.price}
@@ -282,9 +319,9 @@ export default function PropertyMarketplace() {
                       </p>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-[#565d6d]">
-                      <span>{property.bedrooms ?? '—'} beds</span>
+                      <span>{rooms(property.bedrooms, 'bed')}</span>
                       <span>·</span>
-                      <span>{property.bathrooms ?? '—'} baths</span>
+                      <span>{rooms(property.bathrooms, 'bath')}</span>
                       <span>·</span>
                       <span>{property.parking ?? 0} parking</span>
                       <span>·</span>

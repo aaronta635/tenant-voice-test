@@ -1,0 +1,31 @@
+<!doctype html>
+<!--
+  The listing page the browser journeys import (scripts/e2e_server.py serves it
+  at LISTING_URL over a fake network, docs/e2e.md). Made up: the agency, the
+  address and the home do not exist.
+-->
+<html lang="en-AU"><head>
+<meta charset="utf-8">
+<title>Renovated terrace near Wentworth Park | Wattle Lane Realty</title>
+<meta property="og:site_name" content="Wattle Lane Realty">
+<meta property="og:title" content="Renovated terrace near Wentworth Park">
+<meta property="og:image" content="https://photos.wattle-lane.example/terrace-1.jpg">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "House",
+ "name": "Renovated terrace near Wentworth Park",
+ "description": "A two-storey terrace with a new kitchen, a courtyard garden and two bathrooms, a short walk to Wentworth Park and the light rail.",
+ "address": {"@type": "PostalAddress", "streetAddress": "12 Bridge Road", "addressLocality": "Glebe",
+             "addressRegion": "NSW", "postalCode": "2037"},
+ "numberOfBedrooms": 3, "numberOfBathroomsTotal": 2,
+ "amenityFeature": [{"@type": "LocationFeatureSpecification", "name": "Courtyard", "value": true},
+                    {"@type": "LocationFeatureSpecification", "name": "Dishwasher", "value": true}],
+ "offers": {"@type": "Offer", "priceCurrency": "AUD",
+            "priceSpecification": {"@type": "UnitPriceSpecification", "price": 890, "priceCurrency": "AUD",
+                                   "unitCode": "WEE"}}}
+</script>
+</head>
+<body>
+<h1>12 Bridge Road, Glebe NSW 2037</h1>
+<p>Bond: $3,560. 12 month lease. Available now. Pets allowed.</p>
+<p>Inspections by appointment with Wattle Lane Realty.</p>
+</body></html>

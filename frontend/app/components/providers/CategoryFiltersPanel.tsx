@@ -1,502 +1,175 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type RefObject } from 'react';
+import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import ProviderCard from '@/app/components/providers/ProviderCard';
 import type { Category, PublicProvider } from '@/app/lib/api';
-import { providerLocation, providerName } from '@/app/lib/provider-view';
+import { matchesProviderLocation, providerLocation, providerName } from '@/app/lib/provider-view';
 
 const SORT_OPTIONS = ['Recommended', 'Highest rated', 'Lowest price', 'Most reviews'] as const;
-const VIEWS = ['Grid', 'List', 'Map'] as const;
 const RATINGS = ['Any', '3.0+', '4.0+', '4.5+'] as const;
-
+// Typing and dragging write the URL once input pauses: every history write
+// commits through a router transition, and browsers rate-limit history calls.
+const URL_WRITE_DELAY_MS = 300;
+type UrlChanges = Record<string, string | string[] | null>;
 type Props = {
-  category: Category;
-  providers: PublicProvider[];
-  /** Distinct service titles offered inside this category (from the database). */
-  serviceTypes: string[];
-  /** Distinct verification badges providers in this category actually hold. */
-  verificationOptions: string[];
-  /** Distinct availability notes providers in this category publish. */
-  availabilityOptions: string[];
-  priceCeiling: number;
-  initialLocation?: string;
-  initialSearch?: string;
+  category: Category; providers: PublicProvider[]; serviceTypes: string[];
+  verificationOptions: string[]; availabilityOptions: string[]; priceCeiling: number;
 };
+const inputClass = 'min-h-11 w-full rounded-xl border border-control-border bg-white px-3 py-2 text-sm text-text-dark';
 
-export default function CategoryFiltersPanel({
-  category,
-  providers,
-  serviceTypes,
-  verificationOptions,
-  availabilityOptions,
-  priceCeiling,
-  initialLocation = '',
-  initialSearch = '',
-}: Props) {
-  const [serviceFilters, setServiceFilters] = useState<string[]>([]);
-  const [rating, setRating] = useState<(typeof RATINGS)[number]>('Any');
-  const [priceMin, setPriceMin] = useState(0);
-  const [priceMax, setPriceMax] = useState(priceCeiling);
-  const [availability, setAvailability] = useState<string[]>([]);
-  const [verifications, setVerifications] = useState<string[]>([]);
-  const [sort, setSort] = useState<(typeof SORT_OPTIONS)[number]>('Recommended');
-  const [view, setView] = useState<(typeof VIEWS)[number]>('Grid');
-  const [saved, setSaved] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
-  const [location, setLocation] = useState(initialLocation);
-  const [search, setSearch] = useState(initialSearch);
+export default function CategoryFiltersPanel({ category, providers, serviceTypes, verificationOptions, availabilityOptions, priceCeiling }: Props) {
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const id = useId();
+  const rating = RATINGS.find((value) => value === params.get('rating')) ?? 'Any';
+  const sort = SORT_OPTIONS.find((value) => value === params.get('sort')) ?? 'Recommended';
+  const view = params.get('view') === 'List' ? 'List' : 'Grid';
+  const serviceFilters = params.getAll('service');
+  const verifications = params.getAll('verified');
+  const availability = params.getAll('available');
+  const clampPrice = (raw: string | null, fallback: number) => raw !== null && Number.isFinite(Number(raw)) ? Math.max(0, Math.min(priceCeiling, Number(raw))) : fallback;
+  // Text and range inputs start from the URL but then read local state: bound to
+  // the URL they lag behind each keystroke, which moves the caret to the end.
+  const [location, setLocation] = useState(() => params.get('location') ?? '');
+  const [search, setSearch] = useState(() => params.get('search') ?? '');
+  const [price, setPrice] = useState(() => {
+    const min = clampPrice(params.get('min'), 0);
+    return { min, max: Math.max(min, clampPrice(params.get('max'), priceCeiling)) };
+  });
+  const { min: priceMin, max: priceMax } = price;
+  const [locationDraft, setLocationDraft] = useState(location);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const pendingChanges = useRef<UrlChanges>({});
+  const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isCoHost = category.slug === 'co-host-inspector';
 
+  // A write still pending after navigating away would rewrite the next page's URL.
+  useEffect(() => () => cancelPendingWrite(writeTimer, pendingChanges), []);
+
+  function update(changes: UrlChanges = {}) {
+    const merged = { ...pendingChanges.current, ...changes };
+    cancelPendingWrite(writeTimer, pendingChanges);
+    // Read the latest URL so two controls changed in the same tick never overwrite each other.
+    const query = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries(merged)) {
+      query.delete(key);
+      for (const item of Array.isArray(value) ? value : value ? [value] : []) query.append(key, item);
+    }
+    // /categories lists providers only while the URL has a location, keywords or ?all=1.
+    if (category.slug === 'all' && !query.get('location') && !query.get('search')) query.set('all', '1');
+    window.history.replaceState(null, '', `${pathname}${query.toString() ? `?${query}` : ''}`);
+  }
+  function updateSoon(changes: UrlChanges) {
+    pendingChanges.current = { ...pendingChanges.current, ...changes };
+    if (writeTimer.current) clearTimeout(writeTimer.current);
+    writeTimer.current = setTimeout(() => update(), URL_WRITE_DELAY_MS);
+  }
+  function flushUpdate() {
+    if (writeTimer.current) update();
+  }
   function clearAll() {
-    setServiceFilters([]);
-    setRating('Any');
-    setPriceMin(0);
-    setPriceMax(priceCeiling);
-    setAvailability([]);
-    setVerifications([]);
-    setSort('Recommended');
-    setSearch('');
+    cancelPendingWrite(writeTimer, pendingChanges);
+    setLocation(''); setSearch(''); setPrice({ min: 0, max: priceCeiling });
+    setLocationDraft(''); setSuggestionsOpen(false);
+    window.history.replaceState(null, '', category.slug === 'all' ? `${pathname}?all=1` : pathname);
   }
-
-  function toggleInList(list: string[], value: string, setter: (next: string[]) => void) {
-    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  function toggle(key: string, values: string[], value: string) {
+    update({ [key]: values.includes(value) ? values.filter((item) => item !== value) : [...values, value] });
   }
-
-  const filteredProviders = useMemo(() => {
-    const minRating = rating === 'Any' ? 0 : Number.parseFloat(rating.replace('+', ''));
-    const needle = search.trim().toLowerCase();
-    const place = location.trim().toLowerCase();
-
-    const next = providers.filter((provider) => {
-      if (provider.rating_avg < minRating) return false;
-
-      if (verifications.some((v) => !provider.verifications.includes(v))) return false;
-
-      if (
-        availability.length > 0 &&
-        (!provider.availability_note || !availability.includes(provider.availability_note))
-      ) {
-        return false;
+  function applyLocation(value: string) {
+    setLocation(value.trim()); setLocationDraft(value.trim()); setSuggestionsOpen(false); setActiveSuggestion(-1);
+    update({ location: value.trim() });
+  }
+  const suggestions = useMemo(() => {
+    const places = new Set<string>();
+    for (const provider of providers) {
+      for (const place of [providerLocation(provider), provider.profiles?.location, provider.profiles?.state, provider.profiles?.postcode]) {
+        if (place && place !== 'Australia') places.add(place);
       }
+    }
+    const normalize = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    return [...places].sort().filter((place) => normalize(place).includes(normalize(locationDraft))).slice(0, 8);
+  }, [providers, locationDraft]);
+  const listOpen = suggestionsOpen && suggestions.length > 0;
+  // Profiles opened from here link back to this listing, filters included.
+  const listingQuery = params.toString();
+  const listingHref = `${pathname}${listingQuery ? `?${listingQuery}` : ''}`;
 
-      if (serviceFilters.length > 0) {
-        const titles = provider.specialties ?? [];
-        if (!serviceFilters.some((service) => titles.includes(service))) return false;
-      }
+  const filteredProviders = providers.filter((provider) => {
+    if (provider.rating_avg < (rating === 'Any' ? 0 : Number.parseFloat(rating))) return false;
+    if (verifications.some((value) => !provider.verifications.includes(value))) return false;
+    if (availability.length && !availability.includes(provider.availability_note ?? '')) return false;
+    if (serviceFilters.length && !serviceFilters.some((value) => provider.specialties?.includes(value))) return false;
+    if (provider.from_price !== null && (provider.from_price < priceMin || provider.from_price > priceMax)) return false;
+    if (!matchesProviderLocation(provider, location)) return false;
+    return [providerName(provider), provider.tagline, provider.headline, ...(provider.specialties ?? [])].join(' ').toLowerCase().includes(search.trim().toLowerCase());
+  }).sort((a, b) => sort === 'Highest rated' ? b.rating_avg - a.rating_avg : sort === 'Most reviews' ? b.review_count - a.review_count : sort === 'Lowest price' ? (a.from_price ?? Infinity) - (b.from_price ?? Infinity) : 0);
 
-      if (provider.from_price !== null) {
-        if (provider.from_price < priceMin || provider.from_price > priceMax) return false;
-      }
-
-      if (place && !providerLocation(provider).toLowerCase().includes(place)) return false;
-
-      if (needle) {
-        const haystack = [
-          providerName(provider),
-          provider.tagline ?? '',
-          provider.headline ?? '',
-          ...(provider.specialties ?? []),
-        ]
-          .join(' ')
-          .toLowerCase();
-        if (!haystack.includes(needle)) return false;
-      }
-
-      return true;
-    });
-
-    return [...next].sort((a, b) => {
-      switch (sort) {
-        case 'Highest rated':
-          return b.rating_avg - a.rating_avg;
-        case 'Lowest price':
-          return (a.from_price ?? Number.POSITIVE_INFINITY) - (b.from_price ?? Number.POSITIVE_INFINITY);
-        case 'Most reviews':
-          return b.review_count - a.review_count;
-        default:
-          return 0;
-      }
-    });
-  }, [
-    providers,
-    rating,
-    verifications,
-    availability,
-    serviceFilters,
-    priceMin,
-    priceMax,
-    sort,
-    search,
-    location,
-  ]);
-
-  return (
-    <>
-      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-[36px] font-extrabold tracking-tight text-[#1b1b1f]">
-            {category.name}s near you
-          </h1>
-          <p className="mt-2 max-w-2xl text-[#5f6b76]">{category.description}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setSaved((s) => !s)}
-          aria-pressed={saved}
-          className={`inline-flex h-10 w-fit items-center rounded-full border px-4 text-sm font-semibold transition-colors ${
-            saved
-              ? 'border-primary bg-[#eeeffd] text-primary'
-              : 'border-[#efeff2] bg-white text-[#1b1b1f] hover:border-primary'
-          }`}
-        >
-          {saved ? '✓ Search saved' : 'Save this search'}
-        </button>
-      </div>
-
-      <div className="mt-10 grid gap-8 lg:grid-cols-[280px_1fr]">
-        <aside className="h-fit rounded-[20px] border border-[#efeff2] bg-white p-5 shadow-[0_1px_1px_rgba(14,42,72,0.04)]">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[#1b1b1f]">Filters</h2>
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-xs font-semibold text-primary hover:underline"
-            >
-              Clear all
-            </button>
+  return <>
+    <h1 className="mt-6 font-heading text-3xl font-bold text-text-dark">{isCoHost ? 'Find a co-host inspector' : `Providers in ${category.name}`}</h1>
+    <p className="mt-2 max-w-2xl text-text-body">{category.description}</p>
+    {providers.length === 0 ? <section className="mt-8 rounded-2xl border border-border bg-white p-8">
+      <h2 className="font-heading text-xl font-bold">No providers listed in this category yet</h2>
+      <p className="mt-2 text-text-body">Browse another category, or list your own service.</p>
+      <div className="mt-4 flex flex-wrap gap-4"><Link href="/categories" className="font-semibold text-primary-strong underline">Browse categories</Link><Link href="/register?role=service_provider" className="font-semibold text-primary-strong underline">List your service</Link></div>
+    </section> : <>
+      {isCoHost ? <section className="mt-8 rounded-2xl border border-border bg-white p-5 sm:p-7">
+        <h2 className="font-heading text-xl font-bold">Where is your property?</h2>
+        <p className="mt-1 text-sm text-text-body">Filter inspectors by their listed suburb, state or postcode.</p>
+        <form className="relative mt-4 max-w-xl" onSubmit={(event) => { event.preventDefault(); applyLocation(locationDraft); }}>
+          <label htmlFor={`${id}-area`} className="mb-1 block text-sm font-semibold">Property location</label>
+          <div className="flex gap-2">
+            <input id={`${id}-area`} role="combobox" aria-autocomplete="list" aria-expanded={listOpen} aria-controls={`${id}-suggestions`} aria-activedescendant={listOpen && suggestions[activeSuggestion] ? `${id}-suggestion-${activeSuggestion}` : undefined}
+              className={`${inputClass} min-w-0`} value={locationDraft} placeholder="Suburb or postcode" autoComplete="off"
+              onChange={(event) => { setLocationDraft(event.target.value); setSuggestionsOpen(true); setActiveSuggestion(-1); }}
+              onFocus={() => setSuggestionsOpen(true)} onBlur={() => setSuggestionsOpen(false)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') { event.preventDefault(); setSuggestionsOpen(false); setActiveSuggestion(-1); }
+                // With nothing to highlight, the arrows keep moving the caret.
+                if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && suggestions.length > 0) { event.preventDefault(); setSuggestionsOpen(true); setActiveSuggestion((previous) => Math.max(0, Math.min(suggestions.length - 1, previous + (event.key === 'ArrowDown' ? 1 : -1)))); }
+                if (event.key === 'Enter' && suggestionsOpen && activeSuggestion >= 0 && suggestions[activeSuggestion]) { event.preventDefault(); applyLocation(suggestions[activeSuggestion]); }
+              }} />
+            <button className="min-h-11 shrink-0 rounded-xl border border-transparent bg-primary-strong px-4 font-semibold text-white">Search</button>
           </div>
-
-          <FilterBlock title="Location">
-            <label className="sr-only" htmlFor="filter-location">
-              Location
-            </label>
-            <input
-              id="filter-location"
-              type="text"
-              value={location}
-              placeholder="Suburb or state"
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full rounded-[10px] border border-[#efeff2] bg-white px-3 py-2 text-sm font-semibold text-[#1b1b1f] outline-none focus:border-primary"
-            />
-          </FilterBlock>
-
-          <FilterBlock title="Keywords">
-            <label className="sr-only" htmlFor="filter-search">
-              Keywords
-            </label>
-            <input
-              id="filter-search"
-              type="search"
-              value={search}
-              placeholder="What do you need done?"
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-[10px] border border-[#efeff2] bg-white px-3 py-2 text-sm text-[#1b1b1f] outline-none focus:border-primary"
-            />
-          </FilterBlock>
-
-          {serviceTypes.length > 0 ? (
-            <FilterBlock title="Service type">
-              <div className="flex flex-wrap gap-1.5">
-                {serviceTypes.map((type) => {
-                  const selected = serviceFilters.includes(type);
-                  return (
-                    <button
-                      key={type}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => toggleInList(serviceFilters, type, setServiceFilters)}
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                        selected
-                          ? 'bg-[#eeeffd] text-[#0e2a48] ring-1 ring-primary/30'
-                          : 'bg-[#f4f4f8] text-[#5f6b76] hover:bg-[#eeeffd]'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  );
-                })}
-              </div>
-            </FilterBlock>
-          ) : null}
-
-          <FilterBlock title="Rating">
-            <div className="space-y-2" role="radiogroup" aria-label="Minimum rating">
-              {RATINGS.map((r) => {
-                const selected = rating === r;
-                return (
-                  <label
-                    key={r}
-                    className="flex cursor-pointer items-center gap-2 text-sm text-[#5f6b76]"
-                  >
-                    <input
-                      type="radio"
-                      name="rating"
-                      value={r}
-                      checked={selected}
-                      onChange={() => setRating(r)}
-                      className="peer sr-only"
-                    />
-                    <span
-                      className={`flex size-4 items-center justify-center rounded-full border transition-colors ${
-                        selected ? 'border-primary bg-primary' : 'border-[#c5cad3] bg-white'
-                      }`}
-                      aria-hidden
-                    >
-                      {selected ? <span className="size-1.5 rounded-full bg-white" /> : null}
-                    </span>
-                    {r === 'Any' ? 'Any' : `${r} stars`}
-                  </label>
-                );
-              })}
-            </div>
-          </FilterBlock>
-
+          {listOpen ? <ul role="listbox" id={`${id}-suggestions`} className="absolute z-20 mt-1 w-full rounded-xl border border-control-border bg-white p-1 shadow-lg">
+            {suggestions.map((place, index) => <li key={place} id={`${id}-suggestion-${index}`} role="option" aria-selected={activeSuggestion === index} onMouseDown={(event) => event.preventDefault()} onClick={() => applyLocation(place)} className={`cursor-pointer rounded-lg px-3 py-3 text-sm ${index === activeSuggestion ? 'bg-primary-strong text-white' : 'text-text-dark hover:bg-surface'}`}>{place}</li>)}
+          </ul> : null}
+        </form>
+        {location ? <button onClick={clearAll} className="mt-3 min-h-11 font-semibold text-primary-strong underline">Show all co-host inspectors</button> : null}
+      </section> : null}
+      <div className="mt-8 grid min-w-0 gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="h-fit rounded-2xl border border-border bg-white p-5 print:hidden">
+          <div className="flex items-center justify-between"><h2 className="font-bold">Filters</h2><button className="min-h-11 text-sm font-semibold text-primary-strong underline" onClick={clearAll}>Clear all</button></div>
+          <FilterBlock title="Location"><label htmlFor={`${id}-location`} className="sr-only">Location</label><input id={`${id}-location`} className={inputClass} value={location} placeholder="Suburb, state or postcode" onChange={(event) => { setLocation(event.target.value); setLocationDraft(event.target.value); updateSoon({ location: event.target.value }); }} onBlur={flushUpdate} /></FilterBlock>
+          <FilterBlock title="Keywords"><label htmlFor={`${id}-search`} className="sr-only">Keywords</label><input id={`${id}-search`} type="search" className={inputClass} value={search} placeholder="What do you need done?" onChange={(event) => { setSearch(event.target.value); updateSoon({ search: event.target.value }); }} onBlur={flushUpdate} /></FilterBlock>
+          {serviceTypes.length > 0 ? <FilterBlock title="Service type">{serviceTypes.map((value) => <Check key={value} checked={serviceFilters.includes(value)} label={value} onChange={() => toggle('service', serviceFilters, value)} />)}</FilterBlock> : null}
+          <FilterBlock title="Minimum rating"><div role="radiogroup" aria-label="Minimum rating">{RATINGS.map((value) => <label key={value} className="flex min-h-11 items-center gap-3 text-sm text-text-body"><input type="radio" className="size-5 shrink-0 accent-primary" name={`${id}-rating`} checked={rating === value} onChange={() => update({ rating: value === 'Any' ? null : value })} />{value === 'Any' ? 'Any rating' : `${value} stars`}</label>)}</div></FilterBlock>
           <FilterBlock title="Price range">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs font-semibold text-[#5f6b76]">
-                <span>${priceMin}</span>
-                <span>
-                  ${priceMax}
-                  {priceMax >= priceCeiling ? '+' : ''}
-                </span>
-              </div>
-              <label className="block text-xs text-[#8c97a2]" htmlFor="price-min">
-                Min
-              </label>
-              <input
-                id="price-min"
-                type="range"
-                min={0}
-                max={priceCeiling}
-                step={10}
-                value={priceMin}
-                onChange={(e) => setPriceMin(Math.min(Number(e.target.value), priceMax))}
-                className="w-full accent-primary"
-              />
-              <label className="block text-xs text-[#8c97a2]" htmlFor="price-max">
-                Max
-              </label>
-              <input
-                id="price-max"
-                type="range"
-                min={0}
-                max={priceCeiling}
-                step={10}
-                value={priceMax}
-                onChange={(e) => setPriceMax(Math.max(Number(e.target.value), priceMin))}
-                className="w-full accent-primary"
-              />
-            </div>
+            <label htmlFor={`${id}-min`} className="text-sm text-text-body">Minimum ${priceMin}</label><input id={`${id}-min`} type="range" className="mt-2 h-6 w-full accent-primary" min={0} max={priceCeiling} step={10} value={priceMin} onChange={(event) => { const min = Math.min(Number(event.target.value), priceMax); setPrice({ min, max: priceMax }); updateSoon({ min: String(min) }); }} onBlur={flushUpdate} />
+            <label htmlFor={`${id}-max`} className="mt-3 block text-sm text-text-body">Maximum ${priceMax}</label><input id={`${id}-max`} type="range" className="mt-2 h-6 w-full accent-primary" min={0} max={priceCeiling} step={10} value={priceMax} onChange={(event) => { const max = Math.max(Number(event.target.value), priceMin); setPrice({ min: priceMin, max }); updateSoon({ max: String(max) }); }} onBlur={flushUpdate} />
           </FilterBlock>
-
-          {availabilityOptions.length > 0 ? (
-            <FilterBlock title="Availability">
-              <div className="flex flex-wrap gap-1.5">
-                {availabilityOptions.map((a) => {
-                  const selected = availability.includes(a);
-                  return (
-                    <button
-                      key={a}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => toggleInList(availability, a, setAvailability)}
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                        selected
-                          ? 'bg-[#eeeffd] text-[#0e2a48] ring-1 ring-primary/30'
-                          : 'bg-[#f4f4f8] text-[#5f6b76] hover:bg-[#eeeffd]'
-                      }`}
-                    >
-                      {a}
-                    </button>
-                  );
-                })}
-              </div>
-            </FilterBlock>
-          ) : null}
-
-          {verificationOptions.length > 0 ? (
-            <FilterBlock title="Verification" last>
-              {verificationOptions.map((v) => {
-                const checked = verifications.includes(v);
-                return (
-                  <label
-                    key={v}
-                    className="mb-2 flex cursor-pointer items-center gap-2 text-sm text-[#5f6b76] last:mb-0"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleInList(verifications, v, setVerifications)}
-                      className="peer sr-only"
-                    />
-                    <span
-                      className={`flex size-4 items-center justify-center rounded-[4px] border text-[10px] font-bold transition-colors ${
-                        checked
-                          ? 'border-primary bg-primary text-white'
-                          : 'border-[#c5cad3] bg-white text-transparent'
-                      }`}
-                      aria-hidden
-                    >
-                      ✓
-                    </span>
-                    {v}
-                  </label>
-                );
-              })}
-            </FilterBlock>
-          ) : null}
+          {availabilityOptions.length > 0 ? <FilterBlock title="Availability">{availabilityOptions.map((value) => <Check key={value} checked={availability.includes(value)} label={value} onChange={() => toggle('available', availability, value)} />)}</FilterBlock> : null}
+          {verificationOptions.length > 0 ? <FilterBlock title="Verification">{verificationOptions.map((value) => <Check key={value} checked={verifications.includes(value)} label={`${value} (${providers.filter((provider) => provider.verifications.includes(value)).length})`} onChange={() => toggle('verified', verifications, value)} />)}</FilterBlock> : null}
         </aside>
-
-        <div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-[#5f6b76]">
-              <span className="font-bold text-[#1b1b1f]">
-                {filteredProviders.length} of {category.provider_count}
-              </span>{' '}
-              {category.name.toLowerCase()}s
-              {location ? ` near ${location}` : ''}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative">
-                <button
-                  type="button"
-                  aria-haspopup="listbox"
-                  aria-expanded={sortOpen}
-                  onClick={() => setSortOpen((o) => !o)}
-                  className="text-sm text-[#8c97a2]"
-                >
-                  Sort by{' '}
-                  <span className="font-semibold text-[#1b1b1f]">
-                    {sort} {sortOpen ? '▴' : '▾'}
-                  </span>
-                </button>
-                {sortOpen ? (
-                  <ul
-                    role="listbox"
-                    className="absolute right-0 z-20 mt-2 min-w-[180px] overflow-hidden rounded-[12px] border border-[#efeff2] bg-white py-1 shadow-[0_12px_24px_rgba(14,42,72,0.12)]"
-                  >
-                    {SORT_OPTIONS.map((option) => (
-                      <li key={option}>
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={sort === option}
-                          onClick={() => {
-                            setSort(option);
-                            setSortOpen(false);
-                          }}
-                          className={`flex w-full px-3 py-2 text-left text-sm ${
-                            sort === option
-                              ? 'bg-[#eeeffd] font-semibold text-primary'
-                              : 'text-[#5f6b76] hover:bg-[#fafafe]'
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-
-              <div
-                className="flex overflow-hidden rounded-[10px] border border-[#efeff2]"
-                role="tablist"
-                aria-label="Result view"
-              >
-                {VIEWS.map((v) => {
-                  const selected = view === v;
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      role="tab"
-                      aria-selected={selected}
-                      onClick={() => setView(v)}
-                      className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
-                        selected
-                          ? 'bg-[#0e2a48] text-white'
-                          : 'bg-white text-[#5f6b76] hover:bg-[#fafafe]'
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  );
-                })}
-              </div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-text-body">{filteredProviders.length} of {providers.length} providers{location ? ` matching ${location}` : ''}</p>
+            <div className="flex flex-wrap items-center gap-3 print:hidden"><label className="flex items-center gap-2 text-sm">Sort by<select className="min-h-11 rounded-lg border border-control-border bg-white px-2" value={sort} onChange={(event) => update({ sort: event.target.value })}>{SORT_OPTIONS.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <div role="group" aria-label="Result view" className="flex gap-1">{['Grid', 'List'].map((value) => <button key={value} aria-pressed={view === value} onClick={() => update({ view: value })} className={`min-h-11 rounded-lg border px-3 text-sm ${view === value ? 'border-primary-strong bg-primary-strong text-white' : 'border-control-border bg-white text-text-body'}`}>{value}</button>)}</div>
             </div>
           </div>
-
-          {filteredProviders.length === 0 ? (
-            <div className="mt-10 rounded-[20px] border border-dashed border-[#c5cad3] bg-white p-10 text-center">
-              <p className="font-semibold text-[#1b1b1f]">No providers match these filters</p>
-              <p className="mt-2 text-sm text-[#5f6b76]">
-                Try clearing a few filters or widening the price range.
-              </p>
-              <button
-                type="button"
-                onClick={clearAll}
-                className="mt-4 text-sm font-semibold text-primary hover:underline"
-              >
-                Clear all filters
-              </button>
-            </div>
-          ) : view === 'List' ? (
-            <div className="mt-6 space-y-3">
-              {filteredProviders.map((provider) => (
-                <div
-                  key={provider.id}
-                  className="overflow-hidden rounded-[16px] border border-[#efeff2] bg-white"
-                >
-                  <ProviderCard provider={provider} />
-                </div>
-              ))}
-            </div>
-          ) : view === 'Map' ? (
-            <div className="mt-6 flex min-h-[420px] flex-col items-center justify-center rounded-[20px] border border-[#efeff2] bg-[#eef2f5] p-8 text-center">
-              <p className="text-lg font-bold text-[#0e2a48]">Map view</p>
-              <p className="mt-2 max-w-sm text-sm text-[#5f6b76]">
-                Showing {filteredProviders.length} providers
-                {location ? ` near ${location}` : ''}. Map tiles can be wired up later.
-              </p>
-              <div className="mt-6 grid w-full max-w-md gap-2">
-                {filteredProviders.map((provider) => (
-                  <div
-                    key={provider.id}
-                    className="rounded-[12px] border border-[#efeff2] bg-white px-3 py-2 text-left text-sm"
-                  >
-                    <span className="font-semibold text-[#1b1b1f]">{providerName(provider)}</span>
-                    <span className="text-[#8c97a2]"> · {providerLocation(provider)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {filteredProviders.map((provider) => (
-                <ProviderCard key={provider.id} provider={provider} />
-              ))}
-            </div>
-          )}
+          {filteredProviders.length === 0 ? <section className="mt-6 rounded-2xl border border-border bg-white p-8 text-center"><h2 className="font-bold">No providers match these filters</h2><p className="mt-2 text-sm text-text-body">Try another location or clear the filters.</p><button className="mt-3 min-h-11 font-semibold text-primary-strong underline" onClick={clearAll}>Clear all filters</button></section> : <div className={view === 'List' ? 'mt-6 space-y-4' : 'mt-6 grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3'}>{filteredProviders.map((provider) => <ProviderCard key={provider.id} provider={provider} layout={view === 'List' ? 'list' : 'grid'} listingHref={listingHref} />)}</div>}
         </div>
       </div>
-    </>
-  );
+    </>}
+  </>;
 }
-
-function FilterBlock({
-  title,
-  children,
-  last = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  last?: boolean;
-}) {
-  return (
-    <div className={`mt-5 pt-5 ${last ? '' : 'border-b border-[#f4f4f8]'} pb-5 last:pb-0`}>
-      <h3 className="mb-3 text-sm font-bold text-[#1b1b1f]">{title}</h3>
-      {children}
-    </div>
-  );
+function cancelPendingWrite(timer: RefObject<ReturnType<typeof setTimeout> | null>, pending: RefObject<UrlChanges>) {
+  if (timer.current) clearTimeout(timer.current);
+  timer.current = null;
+  pending.current = {};
 }
+function FilterBlock({ title, children }: { title: string; children: React.ReactNode }) { return <section className="mt-4 border-t border-border pt-4"><h3 className="mb-2 text-sm font-bold">{title}</h3>{children}</section>; }
+function Check({ checked, label, onChange }: { checked: boolean; label: string; onChange: () => void }) { return <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-text-body"><input type="checkbox" className="size-5 shrink-0 accent-primary" checked={checked} onChange={onChange} />{label}</label>; }

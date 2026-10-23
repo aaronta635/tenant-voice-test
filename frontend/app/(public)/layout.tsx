@@ -10,22 +10,25 @@ import { parseRole } from '@/app/lib/session-role';
  * Marketplace / public content stays available after login, but when a role
  * cookie is set we render it inside that role's chrome — never the pre-login
  * Sign in / List your service header that dumps users back onto the guest home.
+ * Each way the page sits in one main landmark: the provider shell has its own,
+ * and the tenant and owner shells leave it to their pages.
  */
 export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const role = parseRole((await cookies()).get('tv_role')?.value);
+  const jar = await cookies();
+  const role = jar.get('tv_token')?.value ? parseRole(jar.get('tv_role')?.value) : null;
 
   if (role === 'Provider') {
     return <ProviderShell>{children}</ProviderShell>;
   }
   if (role === 'Owner') {
-    return <OwnerShell>{children}</OwnerShell>;
+    return <OwnerShell><main className="min-w-0">{children}</main></OwnerShell>;
   }
   if (role === 'Client') {
-    return <TenantShell>{children}</TenantShell>;
+    return <TenantShell><main className="min-w-0">{children}</main></TenantShell>;
   }
 
   return (

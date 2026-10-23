@@ -13,7 +13,9 @@ router = APIRouter(tags=["service-providers"])
 
 
 @router.get("/me/provider", response_model=ServiceProviderOut)
-def read_my_provider(current: CurrentProfile = Depends(get_current_profile)):
+def read_my_provider(current: CurrentProfile = Depends(require_role("service_provider"))):
+    # Role-gated like POST/PATCH below: a non-provider asking for "my provider
+    # profile" is forbidden, not looking at something that merely doesn't exist.
     return service_providers_service.require_provider_by_profile_id(current.id)
 
 
@@ -22,7 +24,9 @@ def create_my_provider(
     payload: ServiceProviderCreate,
     current: CurrentProfile = Depends(require_role("service_provider")),
 ):
-    return service_providers_service.create_provider(current.id, payload.model_dump())
+    return service_providers_service.create_provider(
+        current.id, payload.model_dump(exclude_unset=True)
+    )
 
 
 @router.patch("/me/provider", response_model=ServiceProviderOut)
@@ -31,7 +35,9 @@ def update_my_provider(
     current: CurrentProfile = Depends(require_role("service_provider")),
 ):
     provider = service_providers_service.require_provider_by_profile_id(current.id)
-    return service_providers_service.update_provider(provider["id"], payload.model_dump())
+    return service_providers_service.update_provider(
+        provider["id"], payload.model_dump(exclude_unset=True)
+    )
 
 
 @router.get("/providers", response_model=list[ServiceProviderPublicOut])

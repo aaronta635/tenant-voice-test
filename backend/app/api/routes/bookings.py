@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, status
 
 from app.core.deps import CurrentProfile, get_current_profile
@@ -19,8 +21,8 @@ def create_booking(payload: BookingCreate, current: CurrentProfile = Depends(get
 
 
 @router.get("", response_model=list[BookingOut])
-def list_bookings(status: str | None = None, current: CurrentProfile = Depends(get_current_profile)):
-    provider_id = _my_provider_id(current)
+def list_bookings(status: str | None = None, scope: Literal["client"] | None = None, current: CurrentProfile = Depends(get_current_profile)):
+    provider_id = None if scope == "client" else _my_provider_id(current)
     return bookings_service.list_bookings(current.id, provider_id, status)
 
 
@@ -29,7 +31,7 @@ def get_booking(booking_id: str, current: CurrentProfile = Depends(get_current_p
     provider_id = _my_provider_id(current)
     booking = bookings_service.get_booking(booking_id)
     bookings_service.assert_participant(booking, current.id, provider_id)
-    return bookings_service.decorate([booking])[0]
+    return bookings_service.decorate([booking], viewer_id=current.id)[0]
 
 
 @router.patch("/{booking_id}", response_model=BookingOut)

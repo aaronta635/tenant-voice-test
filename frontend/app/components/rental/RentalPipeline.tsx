@@ -2,51 +2,59 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import InspectionBooking from '@/app/components/inspections/InspectionBooking';
+import {
+  leaseActive,
+  PipelineLeaseAction,
+  PipelineLeaseStep,
+  PipelineMoveInStep,
+  usePipelineLease,
+} from '@/app/components/leases/PipelineLease';
+import ApplicationForm from '@/app/components/rental/ApplicationForm';
 import Button from '@/app/components/ui/Button';
 import Card from '@/app/components/ui/Card';
 import {
   api,
-  ApiError,
   safe,
   type Application,
-  type Inspection,
   type Profile,
   type Property,
 } from '@/app/lib/api';
-import { formatDate, formatDateTime, formatMoney } from '@/app/lib/format';
+import { formatDate, formatMoney } from '@/app/lib/format';
+import { APPLICATION_STAGE_LABELS, decisionNote, isOpenStage, stageOf } from '@/app/lib/listings';
 
 // Stage definitions describe the rental journey (UI flow), while every stage's
 // content — properties, inspections, application state — is read from Supabase.
 const STAGES = [
   { id: 'browse', label: 'Browse properties', description: 'Compare homes by price, photos, location and availability.', action: 'Select property' },
-  { id: 'inspect', label: 'Book inspection', description: 'Request a viewing and ask the owner questions in chat.', action: 'Book inspection' },
-  { id: 'apply', label: 'Submit application', description: 'Send your profile, income and move-in date to the owner.', action: 'Submit application' },
+  { id: 'inspect', label: 'Book inspection', description: 'Ask for one of the inspection times the owner published. They accept it, decline it or ask you to pick another.', action: 'Book an inspection' },
+  { id: 'apply', label: 'Submit application', description: 'Send the owner what you choose to share: your saved profile fills in the form.', action: 'Submit application' },
   { id: 'review', label: 'Owner review', description: 'The owner reviews your application and can message you.', action: 'Awaiting owner' },
-  { id: 'lease', label: 'Lease agreement', description: 'Both sides confirm terms, bond and move-in date.', action: 'Accept lease terms' },
-  { id: 'move-in', label: 'Move in', description: 'Keys, condition report, payment setup and ongoing support.', action: 'Confirm move-in' },
+  { id: 'lease', label: 'Lease agreement', description: 'Review the lease your owner sends, confirm its terms and sign it. Your owner signs it next and activates it.', action: 'Review the lease' },
+  { id: 'move-in', label: 'Move in', description: 'Once the lease is active: keys, the condition report and your first rent payment.', action: 'View the lease' },
 ] as const;
-
-type StageId = (typeof STAGES)[number]['id'];
 
 /** Where the tenant actually is, derived from their live application record. */
 function stageFromApplication(application: Application | undefined): number {
   if (!application) return 0;
-  if (application.status === 'approved') return 4;
-  if (application.status === 'reviewing') return 3;
-  return 2;
+  const stage = stageOf(application);
+  if (stage === 'approved') return 4;
+  // Sent and waiting on the owner; a declined or closed one is back at applying.
+  return isOpenStage(stage) ? 3 : 2;
 }
+
+/** An approved application waits at the lease until the server says the owner activated it. */
+const LEASE_STEP = 4;
+const MOVE_IN_STEP = 5;
 
 export default function RentalPipeline() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [inspections, setInspections] = useState<Inspection[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   // null = follow the live pipeline position; a number = the user picked a step.
   const [stepOverride, setStepOverride] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,17 +78,6 @@ export default function RentalPipeline() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!selectedPropertyId) return;
-    let active = true;
-    safe(api.properties.inspections(selectedPropertyId), []).then((list) => {
-      if (active) setInspections(list);
-    });
-    return () => {
-      active = false;
-    };
-  }, [selectedPropertyId]);
-
   const selectedProperty = useMemo(
     () => properties.find((property) => property.id === selectedPropertyId) ?? null,
     [properties, selectedPropertyId],
@@ -91,7 +88,10 @@ export default function RentalPipeline() {
     [applications, selectedPropertyId],
   );
 
-  const currentStep = stageFromApplication(application);
+  const approved = application !== undefined && stageOf(application) === 'approved';
+  const leaseState = usePipelineLease(approved && application ? application.id : null);
+  const applicationStep = stageFromApplication(application);
+  const currentStep = applicationStep === LEASE_STEP && leaseActive(leaseState.lease) ? MOVE_IN_STEP : applicationStep;
   const selectedStep = stepOverride ?? currentStep;
   const setSelectedStep = (next: number | ((step: number) => number)) =>
     setStepOverride((prev) =>
@@ -106,46 +106,9 @@ export default function RentalPipeline() {
   const activeStage = enrichedStages[selectedStep];
   const progress = Math.round(((currentStep + 1) / enrichedStages.length) * 100);
 
-  async function advance(stageId: StageId) {
-    setError(null);
+  function advance() {
     setNotice(null);
     if (!selectedPropertyId) return;
-
-    if (stageId === 'inspect') {
-      setBusy(true);
-      try {
-        await api.conversations.startRental({
-          property_id: selectedPropertyId,
-          subject: selectedProperty?.title ?? null,
-          body: 'Hi — I would like to book an inspection for this property.',
-        });
-        setNotice('Inspection request sent to the owner via Messages.');
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Could not message the owner.');
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-
-    if (stageId === 'apply') {
-      setBusy(true);
-      try {
-        const created = await api.applications.create({
-          property_id: selectedPropertyId,
-          rent_offered: selectedProperty?.price ?? null,
-          move_in_date: selectedProperty?.available_from ?? null,
-        });
-        setApplications((prev) => [created, ...prev]);
-        setNotice('Application submitted to the owner.');
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Could not submit that application.');
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-
     setSelectedStep((step) => Math.min(step + 1, enrichedStages.length - 1));
   }
 
@@ -252,38 +215,22 @@ export default function RentalPipeline() {
             ) : null}
 
             {activeStage.id === 'inspect' ? (
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-3">
-                  {inspections.length === 0 ? (
-                    <p className="rounded-[12px] border border-dashed border-[#dee1e6] p-4 text-sm text-[#565d6d]">
-                      The owner hasn&apos;t published inspection times yet — message them to
-                      arrange one.
-                    </p>
-                  ) : (
-                    inspections.map((slot, index) => (
-                      <label
-                        key={slot.id}
-                        className="flex items-center gap-3 rounded-[12px] border border-[#dee1e6] bg-white p-4"
-                      >
-                        <input
-                          type="radio"
-                          name="inspection-time"
-                          defaultChecked={index === 0}
-                          className="accent-primary"
-                        />
-                        <span className="font-medium">{formatDateTime(slot.starts_at)}</span>
-                      </label>
-                    ))
-                  )}
-                </div>
-                <div className="rounded-[14px] bg-[#fafafb] p-5">
-                  <h3 className="font-heading text-lg font-semibold">
-                    {selectedProperty?.title ?? 'Select a property'}
-                  </h3>
-                  <p className="mt-2 text-sm text-[#565d6d]">
-                    Pick a time, then continue — this opens a conversation with the owner.
-                  </p>
-                </div>
+              <div className="rounded-[14px] border border-[#dee1e6] bg-white p-5">
+                <h3 className="font-heading text-lg font-semibold">
+                  {selectedProperty?.title ?? 'Select a property'}
+                </h3>
+                {selectedPropertyId ? (
+                  <InspectionBooking
+                    key={selectedPropertyId}
+                    propertyId={selectedPropertyId}
+                    role="tenant"
+                    isOwner={false}
+                    signInHref="/login?role=tenant"
+                    manageHref="/owner/properties"
+                  />
+                ) : (
+                  <p className="mt-2 text-sm text-[#565d6d]">Choose a property in the first step to book an inspection.</p>
+                )}
               </div>
             ) : null}
 
@@ -291,22 +238,31 @@ export default function RentalPipeline() {
               <div>
                 <div className="grid gap-5 md:grid-cols-2">
                   <ReadOnlyField label="Applicant" value={profile?.full_name ?? '—'} />
-                  <ReadOnlyField label="Contact" value={profile?.email ?? '—'} />
                   <ReadOnlyField
                     label="Weekly rent"
                     value={formatMoney(selectedProperty?.price)}
-                  />
-                  <ReadOnlyField
-                    label="Available from"
-                    value={formatDate(selectedProperty?.available_from)}
                   />
                 </div>
                 {application ? (
                   <p className="mt-4 rounded-[10px] bg-[#ecfdf3] px-4 py-3 text-sm font-medium text-[#1b7c4f]">
                     Application submitted {formatDate(application.created_at)} — status:{' '}
-                    {application.status}.
+                    {APPLICATION_STAGE_LABELS[stageOf(application)]}.{' '}
+                    <Link href="/tenant/applications" className="underline">View my applications</Link>
                   </p>
-                ) : null}
+                ) : selectedProperty ? (
+                  <div className="mt-5 rounded-[14px] border border-[#dee1e6] p-5">
+                    <ApplicationForm
+                      key={selectedProperty.id}
+                      listing={{ id: selectedProperty.id, title: selectedProperty.title, price: selectedProperty.price }}
+                      onSubmitted={(created) => {
+                        setApplications((prev) => [created, ...prev]);
+                        setNotice('Application submitted to the owner.');
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-[#565d6d]">Choose a property in the first step to apply for it.</p>
+                )}
               </div>
             ) : null}
 
@@ -319,42 +275,26 @@ export default function RentalPipeline() {
                   clarifications.
                 </p>
                 {application ? (
-                  <div className="mt-5 grid gap-3 md:grid-cols-3">
-                    <Tile
-                      label="Tenant score"
-                      value={application.tenant_score ? application.tenant_score.toFixed(1) : '—'}
-                    />
-                    <Tile label="Status" value={application.status} />
-                    <Tile label="Shortlisted" value={application.shortlisted ? 'Yes' : 'Not yet'} />
-                  </div>
+                  <>
+                    <div className="mt-5 grid gap-3 md:grid-cols-2">
+                      <Tile label="Status" value={APPLICATION_STAGE_LABELS[stageOf(application)]} />
+                      <Tile label="Shortlisted" value={application.shortlisted ? 'Yes' : 'Not yet'} />
+                    </div>
+                    {decisionNote(application) ? (
+                      <p className="mt-4 whitespace-pre-line break-words rounded-[10px] bg-[#fafafb] p-4 text-sm text-[#171a1f]">
+                        From the owner: {decisionNote(application)}
+                      </p>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
             ) : null}
 
-            {activeStage.id === 'lease' ? (
-              <div className="rounded-[14px] border border-[#dee1e6] bg-white p-5">
-                <h3 className="font-heading text-lg font-semibold">Lease agreement summary</h3>
-                <dl className="mt-5 grid gap-4 text-sm md:grid-cols-2">
-                  <Detail label="Weekly rent" value={formatMoney(selectedProperty?.price)} />
-                  <Detail label="Bond" value={formatMoney(selectedProperty?.bond)} />
-                  <Detail
-                    label="Lease start"
-                    value={formatDate(selectedProperty?.available_from)}
-                  />
-                  <Detail label="Lease term" value={selectedProperty?.lease_term ?? '—'} />
-                </dl>
-              </div>
-            ) : null}
+            {activeStage.id === 'lease' ? <PipelineLeaseStep state={leaseState} approved={approved} /> : null}
 
-            {activeStage.id === 'move-in' ? (
-              <div className="rounded-[14px] border border-[#dee1e6] bg-white p-5 text-sm text-[#565d6d]">
-                Keys, condition report and payment setup are arranged directly with the owner —
-                use Messages to coordinate.
-              </div>
-            ) : null}
+            {activeStage.id === 'move-in' ? <PipelineMoveInStep state={leaseState} /> : null}
           </div>
 
-          {error ? <p className="mt-4 text-sm text-[#de3b40]">{error}</p> : null}
           {notice ? (
             <p className="mt-4 rounded-[10px] bg-[#ecfdf3] px-4 py-3 text-sm font-medium text-[#1b7c4f]">
               {notice}
@@ -376,13 +316,15 @@ export default function RentalPipeline() {
                   Message owner
                 </Button>
               </Link>
-              <Button
-                className="h-10 rounded-[8px]"
-                disabled={busy || (activeStage.id === 'apply' && !!application)}
-                onClick={() => advance(activeStage.id)}
-              >
-                {busy ? 'Working…' : activeStage.action}
-              </Button>
+              {/* Applying and booking are the form's and the booking panel's own buttons;
+                  the lease steps move only with the lease itself. */}
+              {activeStage.id === 'lease' || activeStage.id === 'move-in' ? (
+                <PipelineLeaseAction lease={leaseState.lease} />
+              ) : activeStage.id === 'apply' || activeStage.id === 'inspect' ? null : (
+                <Button className="h-10 rounded-[8px]" onClick={advance}>
+                  {activeStage.action}
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -445,15 +387,6 @@ function Tile({ label, value }: { label: string; value: string }) {
     <div className="rounded-[12px] bg-[#fafafb] p-4 text-sm">
       <p className="text-xs text-[#565d6d]">{label}</p>
       <p className="mt-1 font-semibold capitalize">{value}</p>
-    </div>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[#565d6d]">{label}</dt>
-      <dd className="font-semibold">{value}</dd>
     </div>
   );
 }

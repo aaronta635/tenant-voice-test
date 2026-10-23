@@ -6,7 +6,7 @@ through verified reviews, complaint tracking, red-flag alerts, and AI-assisted
 guidance.
 
 **CSIT321 Capstone Project — Group 36, University of Wollongong.**
-Client: Wajeeha Saeed · Supervisor: Xueqiao Liu
+Supervisor: Dr Xueqiao Liu
 
 ## What's in this repo
 
@@ -18,8 +18,8 @@ goes through the backend.
 |---|---|
 | [`frontend/`](frontend/) | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4. Role-based sections: `(public)` marketplace, `(auth)`, `(dashboard)` service-provider workspace, `(owner)` landlord portal, `(tenant)` tenant portal. |
 | [`backend/`](backend/) | FastAPI + Uvicorn. Routers under `/api/v1` (`app/api/routes/`), business logic in `app/services/`, Pydantic schemas in `app/schemas/`. Sole client of the Supabase database via the service-role key. |
-| [`supabase/`](supabase/) | Database migrations (`0001`–`0007`), RLS policies, and `seed.sql` demo data. 24 tables across three domains — see [`supabase/README.md`](supabase/README.md). |
-| [`docs/`](docs/) | Project documentation: [`SCOPE.md`](docs/SCOPE.md) (feature tiers), [`DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) (tokens & components), [`rules.md`](docs/rules.md) (coding conventions), [`navigation-flow.md`](docs/navigation-flow.md), [`messaging-plan.md`](docs/messaging-plan.md). |
+| [`supabase/`](supabase/) | Database migrations (`0001`–`0010`), RLS policies, and `seed.sql` demo data. 24 tables across three domains — see [`supabase/README.md`](supabase/README.md). On the shared Supabase project, only [`supabase/shared/`](supabase/shared/README.md) applies: the web-only `web` schema. |
+| [`docs/`](docs/) | Project documentation: [`SCOPE.md`](docs/SCOPE.md) (feature tiers), [`DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) (tokens & components), [`rules.md`](docs/rules.md) (coding conventions), [`navigation-flow.md`](docs/navigation-flow.md), [`messaging-plan.md`](docs/messaging-plan.md), [`shared-db.md`](docs/shared-db.md) (helpers and tests for the shared database). |
 
 ### Architecture at a glance
 
@@ -52,7 +52,7 @@ primary access control.
 Apply the migrations **in order**, then the seed data:
 
 - **Hosted project:** paste and run each of
-  `supabase/migrations/0001…0007` in the Supabase SQL Editor, then `seed.sql`.
+  `supabase/migrations/0001…0010` in the Supabase SQL Editor, then `seed.sql`.
 - **Local CLI:** `supabase start && supabase db reset` (runs migrations + seed
   automatically).
 
@@ -88,6 +88,28 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Optional DeepSeek recommendations
+
+Provider Recommendations work without an AI key: the recommendation assistant
+asks guided questions and matching uses profile information. To let DeepSeek
+run the assistant and rerank confirmed searches, set these backend-only values
+in `backend/.env` and restart FastAPI:
+
+```dotenv
+DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_MODEL=deepseek-flash
+DEEPSEEK_TIMEOUT_SECONDS=12
+```
+
+Open `/dashboard/recommendations` as a service provider and describe who you want
+to reach. The assistant asks for anything missing (who and which area), you
+confirm the details, and only **Find matches** runs a search. Loading the page
+does not call DeepSeek; unavailable AI falls back to guided questions and profile
+matching. No database migration or new package is required. Never put the key in
+a `NEXT_PUBLIC_*` variable.
+
+Setup, data handling and limitations: [AI recommendations](docs/ai-recommendations.md).
 
 ### Demo accounts
 
@@ -129,3 +151,5 @@ breakdown and explicit non-goals.
 ## Team
 
 Nguyen Ta · Minh Quan Tran · Dat Cao · Trung Phong Hoang · Quang Dao Pham · Thi Ngoc Anh Nguyen
+
+Roles and main contributions: [`AUTHORS.md`](AUTHORS.md).

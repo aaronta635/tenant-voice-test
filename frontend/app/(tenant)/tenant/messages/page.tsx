@@ -2,7 +2,7 @@ import TenantShell from '@/app/components/tenant/TenantShell';
 import RentalMessages from '@/app/components/rental/RentalMessages';
 
 export const metadata = {
-  title: 'Messages - TenantVoice',
+  title: 'Messages',
 };
 
 export default function TenantMessagesPage() {

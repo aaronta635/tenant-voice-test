@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Button from '@/app/components/ui/Button';
 import { api, ApiError, type Application, type ApplicationStatus, type Property } from '@/app/lib/api';
 import { formatDate, formatMoney } from '@/app/lib/owner-adapters';
@@ -41,9 +42,29 @@ export default function PropertyDetailsTabs({
   applications: Application[];
   onApplicationsChanged: () => Promise<void> | void;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabId>('details');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // docs/navigation-flow.md: "Property Details —(applicant row action)→ Messages".
+  // Find-or-create the tenant thread, then deep-link straight to it.
+  async function messageApplicant(application: Application) {
+    setError(null);
+    setPendingId(application.id);
+    try {
+      const conversation = await api.conversations.startRental({
+        property_id: property.id,
+        tenant_id: application.tenant_id,
+      });
+      router.push(`/owner/messages?thread=${conversation.id}`);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Could not open a conversation with this applicant.',
+      );
+      setPendingId(null);
+    }
+  }
 
   async function setStatus(application: Application, status: ApplicationStatus) {
     if (pendingId) return;
@@ -171,9 +192,13 @@ export default function PropertyDetailsTabs({
                         </Button>
                       </>
                     ) : (
-                      <Link href="/owner/messages">
-                        <Button variant="secondary">Message</Button>
-                      </Link>
+                      <Button
+                        variant="secondary"
+                        disabled={rowBusy}
+                        onClick={() => messageApplicant(application)}
+                      >
+                        {rowBusy ? 'Opening…' : 'Message'}
+                      </Button>
                     )}
                   </div>
                 </div>

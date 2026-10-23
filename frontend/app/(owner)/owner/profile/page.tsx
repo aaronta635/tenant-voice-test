@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Card from '@/app/components/ui/Card';
+import LoadErrorCard from '@/app/components/ui/LoadErrorCard';
 import {
   HouseIcon,
   FileTextIcon,
@@ -16,8 +17,9 @@ import {
   ChevronRightIcon,
 } from '@/app/components/owner/icons';
 import SignOutLink from '@/app/components/SignOutLink';
-import { api, safe, type OwnerDashboard, type Profile } from '@/app/lib/api';
+import { api, safe, type OwnerDashboard } from '@/app/lib/api';
 import { initialsOf } from '@/app/lib/format';
+import { useMyProfile } from '@/app/lib/use-my-profile';
 
 type ProfileRowProps = {
   icon: React.ReactNode;
@@ -73,22 +75,14 @@ function StatCard({
 }
 
 export default function OwnerProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const { profile, loading, error, retry } = useMyProfile();
   const [stats, setStats] = useState<OwnerDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    (async () => {
-      const [me, dashboard] = await Promise.all([
-        safe<Profile | null>(api.profiles.me(), null),
-        safe<OwnerDashboard | null>(api.dashboard.owner(), null),
-      ]);
-      if (!active) return;
-      setProfile(me);
-      setStats(dashboard);
-      setLoading(false);
-    })();
+    safe<OwnerDashboard | null>(api.dashboard.owner(), null).then((dashboard) => {
+      if (active) setStats(dashboard);
+    });
     return () => {
       active = false;
     };
@@ -99,27 +93,35 @@ export default function OwnerProfilePage() {
       <h1 className="font-heading text-2xl font-bold text-text-dark sm:text-[30px]">Profile</h1>
 
       {loading ? (
-        <p className="text-text-body">Loading your profile…</p>
+        <p role="status" className="text-text-body">Loading your profile…</p>
+      ) : error || !profile ? (
+        <LoadErrorCard title="Your profile could not be loaded" message={error ?? undefined} onRetry={retry} />
       ) : (
         <>
+          <Link href="/owner/profile/edit">
           <Card className="flex items-center gap-6 p-8">
             <div className="flex size-[88px] shrink-0 items-center justify-center rounded-full bg-surface text-2xl font-bold text-navy">
-              {initialsOf(profile?.full_name)}
+              {initialsOf(profile.full_name)}
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-heading text-2xl font-bold text-text-dark">
-                {profile?.full_name ?? '—'}
+                {profile.full_name || '—'}
               </p>
-              <p className="mt-1 text-text-body">{profile?.email ?? '—'}</p>
-              <p className="text-text-body">{profile?.phone ?? 'No phone on file'}</p>
-              {profile?.location ? (
+              {profile.landlord?.agency_name ? (
+                <p className="font-medium text-text-dark">{profile.landlord.agency_name}</p>
+              ) : null}
+              <p className="mt-1 break-words text-text-body">{profile.email ?? '—'}</p>
+              <p className="text-text-body">{profile.phone ?? 'No phone on file'}</p>
+              {profile.location ? (
                 <p className="text-text-body">
                   {[profile.location, profile.state, profile.postcode].filter(Boolean).join(' ')}
                 </p>
               ) : null}
+              {profile.landlord?.bio ? <p className="mt-2 text-sm text-text-body">{profile.landlord.bio}</p> : null}
             </div>
             <ChevronRightIcon size={24} className="shrink-0 text-text-muted" />
           </Card>
+          </Link>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatCard
@@ -144,9 +146,18 @@ export default function OwnerProfilePage() {
               Account
             </h2>
             <Card className="overflow-hidden p-0">
-              <ProfileRow icon={<UserIcon size={20} />} label="Edit Profile" />
-              <ProfileRow icon={<ShieldCheckIcon size={20} />} label="Identity Verification" />
-              <ProfileRow icon={<SettingsIcon size={20} />} label="Account Settings" />
+              <ProfileRow icon={<UserIcon size={20} />} label="Edit Profile" href="/owner/profile/edit" />
+              <ProfileRow icon={<FileTextIcon size={20} />} label="Profile Completion" href="/owner/profile/completion" />
+              <ProfileRow
+                icon={<ShieldCheckIcon size={20} />}
+                label="Identity Verification"
+                href="/owner/profile/verification"
+              />
+              <ProfileRow
+                icon={<SettingsIcon size={20} />}
+                label="Account Settings"
+                href="/owner/profile/settings"
+              />
             </Card>
           </div>
 
@@ -180,7 +191,7 @@ export default function OwnerProfilePage() {
                 label="Help & Support"
                 href="/owner/help"
               />
-              <ProfileRow icon={<FileTextIcon size={20} />} label="Terms & Privacy" />
+              <ProfileRow icon={<FileTextIcon size={20} />} label="Terms & Privacy" href="/terms" />
             </Card>
           </div>
 

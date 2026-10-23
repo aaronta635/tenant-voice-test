@@ -40,4 +40,5 @@ def delete_my_portfolio_item(item_id: str, current: CurrentProfile = Depends(req
 
 @router.get("/providers/{provider_id}/portfolio", response_model=list[PortfolioItemOut])
 def list_provider_portfolio(provider_id: str):
-    return portfolio_service.list_public_portfolio(provider_id)
+    resolved_id = service_providers_service.require_published(provider_id)
+    return portfolio_service.list_public_portfolio(resolved_id)

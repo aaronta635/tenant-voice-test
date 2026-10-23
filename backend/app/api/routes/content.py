@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 
-from app.core.deps import CurrentProfile, get_current_profile, require_role
+from app.core.deps import CurrentProfile, get_current_profile
 from app.schemas.content import (
     FaqOut,
-    InspectionCreate,
-    InspectionOut,
     NotificationOut,
     PlatformStatsOut,
     SupportContactOut,
@@ -51,30 +49,3 @@ def mark_read(notification_id: str, current: CurrentProfile = Depends(get_curren
 def mark_all_read(current: CurrentProfile = Depends(get_current_profile)):
     return content_service.mark_all_notifications_read(current.id)
 
-
-# --------------------------------------------------------------------------- Inspections
-@router.get("/properties/{property_id}/inspections", response_model=list[InspectionOut])
-def list_inspections(property_id: str):
-    return content_service.list_inspections(property_id)
-
-
-@router.post(
-    "/me/properties/{property_id}/inspections",
-    response_model=InspectionOut,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_inspection(
-    property_id: str,
-    payload: InspectionCreate,
-    current: CurrentProfile = Depends(require_role("landlord")),
-):
-    return content_service.create_inspection(
-        property_id, current.id, payload.model_dump(mode="json")
-    )
-
-
-@router.delete("/me/inspections/{inspection_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_inspection(
-    inspection_id: str, current: CurrentProfile = Depends(require_role("landlord"))
-):
-    content_service.delete_inspection(inspection_id, current.id)

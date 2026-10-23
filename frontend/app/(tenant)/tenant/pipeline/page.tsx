@@ -2,7 +2,7 @@ import TenantShell from '@/app/components/tenant/TenantShell';
 import RentalPipeline from '@/app/components/rental/RentalPipeline';
 
 export const metadata = {
-  title: 'Rental Pipeline - TenantVoice',
+  title: 'Rental Pipeline',
 };
 
 export default function TenantPipelinePage() {
@@ -17,7 +17,7 @@ export default function TenantPipelinePage() {
             Renting process from search to move-in
           </h1>
           <p className="mt-1 text-sm text-[#565d6d]">
-            This is the important flow your demo can explain end-to-end.
+            Follow each step from finding a home to moving in.
           </p>
         </div>
         <RentalPipeline />

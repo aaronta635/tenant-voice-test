@@ -5,8 +5,8 @@ from app.schemas.connections import (
     ConnectionCreate,
     ConnectionOut,
     ConnectionUpdate,
-    ProfileSearchOut,
 )
+from app.schemas.network import ConnectionStateOut, MemberSearchOut
 from app.services import connections as connections_service
 
 router = APIRouter(tags=["connections"])
@@ -24,7 +24,13 @@ def list_my_connections(
 def create_connection(
     payload: ConnectionCreate, current: CurrentProfile = Depends(get_current_profile)
 ):
-    return connections_service.create_connection(current.id, payload.addressee_id)
+    return connections_service.create_connection(current.id, payload.addressee_id, current.role)
+
+
+@router.get("/me/connections/with/{user_id}", response_model=ConnectionStateOut)
+def read_connection_state(user_id: str, current: CurrentProfile = Depends(get_current_profile)):
+    # What a profile page's Connect button offers the caller for this member.
+    return connections_service.state_with(current.id, current.role, user_id)
 
 
 @router.patch("/me/connections/{connection_id}", response_model=ConnectionOut)
@@ -41,11 +47,13 @@ def delete_connection(connection_id: str, current: CurrentProfile = Depends(get_
     connections_service.remove(connection_id, current.id)
 
 
-@router.get("/profiles/search", response_model=list[ProfileSearchOut])
+@router.get("/profiles/search", response_model=list[MemberSearchOut])
 def search_profiles(
     search: str | None = None,
     role: str | None = None,
     limit: int = Query(24, ge=1, le=100),
     current: CurrentProfile = Depends(get_current_profile),
 ):
-    return connections_service.search_profiles(current.id, search=search, role=role, limit=limit)
+    return connections_service.search_profiles(
+        current.id, search=search, role=role, limit=limit, viewer_role=current.role
+    )

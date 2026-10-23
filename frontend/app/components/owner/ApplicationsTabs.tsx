@@ -40,28 +40,35 @@ export default function ApplicationsTabs() {
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const properties = await api.properties.listMine();
-      const perProperty = await Promise.all(
-        properties.map(async (property) => {
-          const apps = await api.applications.listForProperty(property.id);
-          return apps.map((app) => toApplicant(app, propertyLabel(property)));
+  // Promise-chain style so every setState runs asynchronously — the effect
+  // below stays cascade-free (react-hooks/set-state-in-effect). `loading`
+  // starts true and `error` clears on success.
+  const load = useCallback(
+    () =>
+      api.properties
+        .listMine()
+        .then(async (properties) => {
+          const perProperty = await Promise.all(
+            properties.map(async (property) => {
+              const apps = await api.applications.listForProperty(property.id);
+              return apps.map((app) => toApplicant(app, propertyLabel(property)));
+            }),
+          );
+          setApplicants(perProperty.flat());
+          setError(null);
+        })
+        .catch((err) => {
+          setError(
+            err instanceof ApiError
+              ? err.message
+              : 'Could not load applications. Is the API running?',
+          );
+        })
+        .finally(() => {
+          setLoading(false);
         }),
-      );
-      setApplicants(perProperty.flat());
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Could not load applications. Is the API running?',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    [],
+  );
 
   useEffect(() => {
     void load();

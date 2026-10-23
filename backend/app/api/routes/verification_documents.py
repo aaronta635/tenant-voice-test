@@ -15,7 +15,7 @@ router = APIRouter(prefix="/me/verification-documents", tags=["verification-docu
 @router.get("", response_model=list[VerificationDocumentOut])
 def list_my_documents(current: CurrentProfile = Depends(require_role("service_provider"))):
     provider = service_providers_service.require_provider_by_profile_id(current.id)
-    return verification_documents_service.list_my_documents(provider["id"])
+    return verification_documents_service.list_my_documents(provider["id"], current.id)
 
 
 @router.post("", response_model=VerificationDocumentOut, status_code=status.HTTP_201_CREATED)
@@ -23,7 +23,7 @@ def create_my_document(
     payload: VerificationDocumentCreate, current: CurrentProfile = Depends(require_role("service_provider"))
 ):
     provider = service_providers_service.require_provider_by_profile_id(current.id)
-    return verification_documents_service.create_document(provider["id"], payload.model_dump())
+    return verification_documents_service.create_document(provider["id"], current.id, payload.model_dump())
 
 
 @router.patch("/{document_id}", response_model=VerificationDocumentOut)
@@ -33,10 +33,12 @@ def update_my_document(
     current: CurrentProfile = Depends(require_role("service_provider")),
 ):
     provider = service_providers_service.require_provider_by_profile_id(current.id)
-    return verification_documents_service.update_document(document_id, provider["id"], payload.model_dump())
+    return verification_documents_service.update_document(
+        document_id, provider["id"], current.id, payload.model_dump()
+    )
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_my_document(document_id: str, current: CurrentProfile = Depends(require_role("service_provider"))):
     provider = service_providers_service.require_provider_by_profile_id(current.id)
-    verification_documents_service.delete_document(document_id, provider["id"])
+    verification_documents_service.delete_document(document_id, provider["id"], current.id)

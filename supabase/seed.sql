@@ -40,8 +40,8 @@ begin
   )
   on conflict (id) do nothing;
 
-  insert into public.profiles (id, role, full_name, location, state, postcode, avatar_url, phone)
-  values (p_id, p_role, p_name, p_location, p_state, p_postcode, p_avatar, p_phone)
+  insert into public.profiles (id, role, full_name, location, state, postcode, avatar_url, phone, created_at)
+  values (p_id, p_role, p_name, p_location, p_state, p_postcode, p_avatar, p_phone, now() - interval '2 years')
   on conflict (id) do update set
     role       = excluded.role,
     full_name  = excluded.full_name,
@@ -49,7 +49,8 @@ begin
     state      = excluded.state,
     postcode   = excluded.postcode,
     avatar_url = excluded.avatar_url,
-    phone      = excluded.phone;
+    phone      = excluded.phone,
+    created_at = least(public.profiles.created_at, excluded.created_at);
 
   return p_id;
 end $$;
@@ -66,7 +67,7 @@ insert into public.service_categories (slug, category, name, description, icon_b
   ('real-estate-accountant', 'accountant', 'Real Estate Accountant',
    'Tax, structuring and depreciation schedules tailored to property investors.', '#e6f0ea', null, 3),
   ('tradies', 'tradie', 'Tradies',
-   'Electricians, plumbers, painters and handymen — fixed-price jobs only.', '#f5ede2', null, 4),
+   'Electricians, plumbers, painters and handymen with clear upfront pricing.', '#f5ede2', null, 4),
   ('cleaning-provider', 'cleaner', 'Cleaning Provider',
    'Bond cleans, recurring service, end-of-stay turnovers, deep cleans.', '#f7f0e6', null, 5),
   ('property-maintenance', 'property_manager', 'Property Maintenance',
@@ -104,17 +105,17 @@ insert into public.faqs (audience, question, answer, sort_order) values
   ('landlord', 'Can I edit a published listing?',
    'Yes — open the listing from Properties and use the Edit option to update details, photos, or rental terms at any time.', 3),
   ('landlord', 'What payment methods are supported for rent?',
-   'Rent collection is not yet available in this release — see docs/SCOPE.md. Manual rent tracking is planned for a future update.', 4),
+   'Rent collection is not available in this release. Arrange payments directly with your tenant; TenantVoice does not collect rent.', 4),
   ('landlord', 'How do I contact my tenant directly?',
    'Use the Messages section to start or continue a conversation with any tenant.', 5),
   ('tenant', 'How do I apply for a property?',
-   'Open the listing from Properties and use "Apply for this property". You can attach income details and a message to the owner.', 1),
+   'Open the listing from Properties and use "Apply for this property". You can attach income details and a message to the landlord.', 1),
   ('tenant', 'When can I write a review?',
    'Once a tenancy is confirmed you can submit a review from Ratings & Reviews. Reviews are moderated before they go live.', 2),
   ('service_provider', 'When do I get paid?',
-   'Payouts are released after a booking is marked complete. Track them under Finance / Earnings.', 1),
+   'Payments and payouts are simulated in this capstone release; no money is transferred. Finances shows the demonstration ledger for completed bookings.', 1),
   ('all', 'How do I delete my account?',
-   'Contact support from the Help & Support screen and the trust team will action the request within 5 business days.', 9)
+   'Use the Contact support page to request account deletion. Include your account email; the support team will explain the next steps.', 9)
 on conflict do nothing;
 
 insert into public.platform_settings (key, value, description) values
@@ -182,12 +183,12 @@ begin
   -- -------------------------------------------------------------------------
   -- Accounts
   -- -------------------------------------------------------------------------
-  perform public.seed_user(u_amelia,  'amelia@demo.test',   'Amelia Whitlock',        'service_provider', 'Newtown',      'NSW', '2042', '/landing/provider-2.png', '+61 412 555 018');
-  perform public.seed_user(u_daniel,  'daniel@demo.test',   'Daniel Russo',           'service_provider', 'Inner West',   'NSW', '2204', '/landing/provider-1.png', '+61 412 555 021');
-  perform public.seed_user(u_spark,   'spark@demo.test',    'Bright Spark Electrical','service_provider', 'Marrickville', 'NSW', '2204', '/landing/provider-3.png', '+61 412 555 034');
-  perform public.seed_user(u_priya,   'priya@demo.test',    'Priya Basu, CPA',        'service_provider', 'Sydney CBD',   'NSW', '2000', '/landing/provider-4.png', '+61 412 555 047');
-  perform public.seed_user(u_schen,   'sarahchen@demo.test','Sarah Chen',             'service_provider', 'Newtown',      'NSW', '2042', '/landing/provider-2.png', '+61 412 555 059');
-  perform public.seed_user(u_marcus,  'marcus@demo.test',   'Marcus Lee',             'service_provider', 'Surry Hills',  'NSW', '2010', '/landing/provider-3.png', '+61 412 555 062');
+  perform public.seed_user(u_amelia,  'amelia@demo.test',   'Amelia Whitlock',        'service_provider', 'Newtown',      'NSW', '2042', null, '+61 412 555 018');
+  perform public.seed_user(u_daniel,  'daniel@demo.test',   'Daniel Russo',           'service_provider', 'Inner West',   'NSW', '2204', null, '+61 412 555 021');
+  perform public.seed_user(u_spark,   'spark@demo.test',    'Bright Spark Electrical','service_provider', 'Marrickville', 'NSW', '2204', null, '+61 412 555 034');
+  perform public.seed_user(u_priya,   'priya@demo.test',    'Priya Basu, CPA',        'service_provider', 'Sydney CBD',   'NSW', '2000', null, '+61 412 555 047');
+  perform public.seed_user(u_schen,   'sarahchen@demo.test','Sarah Chen',             'service_provider', 'Newtown',      'NSW', '2042', null, '+61 412 555 059');
+  perform public.seed_user(u_marcus,  'marcus@demo.test',   'Marcus Lee',             'service_provider', 'Surry Hills',  'NSW', '2010', null, '+61 412 555 062');
 
   perform public.seed_user(u_jon,     'jonathan@demo.test', 'Jonathan Hayes', 'tenant', 'Marrickville', 'NSW', '2204', null, '+61 400 111 001');
   perform public.seed_user(u_mei,     'mei@demo.test',      'Mei Lin',        'tenant', 'Newtown',      'NSW', '2042', null, '+61 400 111 002');
@@ -200,8 +201,8 @@ begin
   perform public.seed_user(u_jessica, 'jessica@demo.test',  'Jessica Lee',    'tenant', 'Erskineville', 'NSW', '2043', null, '+61 400 111 009');
 
   perform public.seed_user(u_owner,  'owner@demo.test',  'John Doe',         'landlord', 'Newtown',    'NSW', '2042', null, '+61 412 345 678');
-  perform public.seed_user(u_sarahj, 'sarahj@demo.test', 'Sarah Jenkins',    'landlord', 'Cityville',  'NSW', '2000', null, '+61 400 222 001');
-  perform public.seed_user(u_mchen,  'mchen@demo.test',  'Michael Chen',     'landlord', 'Suburbia',   'NSW', '2153', null, '+61 400 222 002');
+  perform public.seed_user(u_sarahj, 'sarahj@demo.test', 'Sarah Jenkins',    'landlord', 'Glebe',      'NSW', '2037', null, '+61 400 222 001');
+  perform public.seed_user(u_mchen,  'mchen@demo.test',  'Michael Chen',     'landlord', 'Petersham',  'NSW', '2049', null, '+61 400 222 002');
   perform public.seed_user(u_emily,  'emily@demo.test',  'Emily Davis',      'landlord', 'Glebe',      'NSW', '2037', null, '+61 400 222 003');
   perform public.seed_user(u_dkim,   'dkim@demo.test',   'David Kim',        'landlord', 'Ashfield',   'NSW', '2131', null, '+61 400 222 004');
   perform public.seed_user(u_elena,  'elena@demo.test',  'Elena Rodriguez',  'landlord', 'Leichhardt', 'NSW', '2040', null, '+61 400 222 005');
@@ -393,15 +394,15 @@ begin
 
   insert into public.bookings (client_id, provider_id, service_id, status, property_address, property_suburb, scheduled_date, scheduled_time, price, notes, created_at)
   values (u_jon, p_amelia, s_appraisal, 'confirmed', '14 Lord St', 'Marrickville, NSW', current_date + 1, time '10:00', 99,
-          'Just confirming Tuesday 10am is still good for the appraisal?', now() - interval '3 days')
+          'Just confirming the scheduled 10am appraisal is still good?', now() - interval '3 days')
   returning id into bk_jh;
 
   insert into public.bookings (client_id, provider_id, service_id, status, property_address, property_suburb, scheduled_date, price, created_at)
-  values (u_mei, p_amelia, s_listing, 'in_progress', '7 Australia St', 'Newtown, NSW', current_date + 2, 280, now() - interval '6 days')
+  values (u_mei, p_amelia, s_listing, 'in_progress', '7 Australia St', 'Newtown, NSW', current_date - 1, 280, now() - interval '6 days')
   returning id into bk_ml;
 
   insert into public.bookings (client_id, provider_id, service_id, status, property_address, property_suburb, scheduled_date, price, created_at)
-  values (u_tom, p_amelia, s_screening, 'in_progress', '22 Audley St', 'Petersham, NSW', current_date + 3, 150, now() - interval '4 days')
+  values (u_tom, p_amelia, s_screening, 'in_progress', '22 Audley St', 'Petersham, NSW', current_date, 150, now() - interval '4 days')
   returning id into bk_tw;
 
   insert into public.bookings (client_id, provider_id, service_id, status, property_suburb, scheduled_date, price, completion_report, created_at)
@@ -429,6 +430,10 @@ begin
   select u_tom, p_spark, null, 'completed', 'Marrickville, NSW', current_date - 8, 89, now() - interval '12 days';
 
   -- -------------------------------------------------------------------------
+  -- Fictional provider histories predate every seeded completed booking.
+  update public.service_providers set created_at = least(created_at, now() - interval '2 years')
+  where profile_id in (u_amelia, u_daniel, u_spark, u_priya, u_schen, u_marcus);
+
   -- Reviews (the trigger recomputes rating_avg / review_count)
   -- -------------------------------------------------------------------------
   insert into public.reviews (booking_id, provider_id, client_id, rating, comment, provider_reply, replied_at, created_at) values
@@ -458,12 +463,11 @@ begin
   -- -------------------------------------------------------------------------
   insert into public.transactions (provider_id, booking_id, type, amount, description, created_at) values
     (p_amelia, bk_sk, 'payment',      99,   'Rental appraisal',      now() - interval '9 days'),
-    (p_amelia, bk_sk, 'platform_fee', 8.41, 'Platform fee',          now() - interval '9 days'),
+    (p_amelia, bk_sk, 'platform_fee', round(99::numeric * 0.085, 2), 'Platform fee',          now() - interval '9 days'),
     (p_amelia, bk_rk, 'payment',      250,  'Listing preparation',   now() - interval '12 days'),
     (p_amelia, bk_rk, 'refund',       250,  'Refunded — scope change', now() - interval '11 days'),
     (p_amelia, bk_pb, 'payment',      200,  'Open home attendance',  now() - interval '14 days'),
     (p_amelia, bk_pb, 'platform_fee', 17,   'Platform fee',          now() - interval '14 days'),
-    (p_amelia, bk_jh, 'payment',      99,   'Rental appraisal',      now() - interval '1 day'),
     (p_amelia, null,  'payment',      280,  'Listing preparation',   now() - interval '35 days'),
     (p_amelia, null,  'payment',      150,  'Tenant screening',      now() - interval '65 days'),
     (p_amelia, null,  'payment',      99,   'Rental appraisal',      now() - interval '95 days'),
@@ -481,9 +485,9 @@ begin
   -- Properties (the owner's portfolio + the tenant marketplace)
   -- -------------------------------------------------------------------------
   insert into public.properties (owner_id, title, description, address, suburb, state, postcode, property_type, bedrooms, bathrooms, parking, price, bond, lease_term, available_from, amenities, photo_urls, status)
-  values (u_owner, 'Modern Loft in Downtown',
+  values (u_owner, 'Modern Loft in Newtown',
     'Light-filled loft with open-plan living, updated kitchen, generous storage, and quick access to cafes and transport.',
-    '123 Main St', 'Cityville', 'NSW', '2000', 'Apartment', 2, 2, 1, 720, 2880, '12 months', current_date + 30,
+    '5/18 Wilson St', 'Newtown', 'NSW', '2042', 'Apartment', 2, 2, 1, 720, 2880, '12 months', current_date + 30,
     array['Balcony','Secure parking','Pet friendly','Close to train','Internal laundry'],
     array['/tenant/application-modern-loft.png'], 'available')
   returning id into pr_loft;
@@ -491,7 +495,7 @@ begin
   insert into public.properties (owner_id, title, description, address, suburb, state, postcode, property_type, bedrooms, bathrooms, parking, price, bond, lease_term, available_from, amenities, photo_urls, status)
   values (u_owner, 'Spacious Family Home',
     'Family-sized home with a quiet street setting, large backyard, refreshed interiors, and multiple living zones.',
-    '456 Oak Ave', 'Suburbia', 'NSW', '2153', 'House', 4, 2, 2, 860, 3440, '12 months', current_date + 24,
+    '12 Conie Ave', 'Baulkham Hills', 'NSW', '2153', 'House', 4, 2, 2, 860, 3440, '12 months', current_date + 24,
     array['Garden','Garage','Study nook','Solar panels','Air conditioning'],
     array['/tenant/application-family-home.png'], 'available')
   returning id into pr_family;
@@ -499,7 +503,7 @@ begin
   insert into public.properties (owner_id, title, description, address, suburb, state, postcode, property_type, bedrooms, bathrooms, parking, price, bond, lease_term, available_from, amenities, photo_urls, status)
   values (u_owner, 'Cozy Studio near University',
     'Compact studio for a simple rental setup, close to campus, public transport, and everyday essentials.',
-    '789 College Rd', 'Campus Town', 'NSW', '2050', 'Studio', 1, 1, 0, 510, 2040, '6 months', current_date + 19,
+    '7/45 Missenden Rd', 'Camperdown', 'NSW', '2050', 'Studio', 1, 1, 0, 510, 2040, '6 months', current_date + 19,
     array['Furnished','Bills included','Shared laundry','Walk to campus'],
     array['/tenant/application-studio.png'], 'available')
   returning id into pr_studio;
@@ -536,21 +540,21 @@ begin
   values (u_daniel, p_amelia, bk_dr, 'Open home attendance') returning id into cv_dr;
 
   insert into public.messages (conversation_id, sender_id, body, is_read, created_at) values
-    (cv_jh, u_jon,    'Hi Amelia, just confirming our rental appraisal for Tuesday 10am. Is that still good?', true,  now() - interval '2 days'),
+    (cv_jh, u_jon,    'Hi Amelia, just confirming our scheduled 10am rental appraisal. Is that still good?', true,  now() - interval '2 days'),
     (cv_jh, u_amelia, 'Hi Jonathan — yes, all confirmed. I''ll be there at 9:55. Anything specific you''d like me to look at?', true, now() - interval '2 days' + interval '7 minutes'),
     (cv_jh, u_amelia, 'Perfect, I''ll do a full walk-through and send the report within 24 hours.', true, now() - interval '2 days' + interval '28 minutes'),
-    (cv_jh, u_jon,    'Just confirming Tuesday 10am is still good for the appraisal?', false, now() - interval '3 hours'),
+    (cv_jh, u_jon,    'Just confirming the scheduled 10am appraisal is still good?', false, now() - interval '3 hours'),
     (cv_jh, u_jon,    'Also — should I be home, or can you collect the key from the agent?', false, now() - interval '2 hours'),
     (cv_ml, u_mei,    'Sent across the marketing photos — let me know what works.', true,  now() - interval '1 day'),
     (cv_ml, u_amelia, 'Got them, thanks Mei. I''ll pick the hero shot and send the listing copy tonight.', true, now() - interval '22 hours'),
     (cv_tw, u_tom,    'Two strong applicants so far, will forward references shortly.', false, now() - interval '1 day'),
-    (cv_vp, u_vanessa,'Thanks for the appraisal — going ahead with the listing.', true, now() - interval '4 days'),
-    (cv_dr, u_amelia, 'Booking accepted — see you Saturday 11am.', true, now() - interval '5 days');
+    (cv_vp, u_vanessa,'Could you appraise this property before I prepare the listing?', true, now() - interval '4 days'),
+    (cv_dr, u_amelia, 'Thanks for the enquiry. I will review the requested date and access details.', true, now() - interval '5 days');
 
   insert into public.conversations (owner_id, tenant_id, property_id, subject)
-  values (u_owner, u_jane, pr_loft, 'Modern Loft in Downtown') returning id into cv_rent_jane;
+  values (u_owner, u_jane, pr_loft, 'Modern Loft in Newtown') returning id into cv_rent_jane;
   insert into public.conversations (owner_id, tenant_id, property_id, subject)
-  values (u_owner, u_jsmith, pr_loft, 'Modern Loft in Downtown') returning id into cv_rent_jon;
+  values (u_owner, u_jsmith, pr_loft, 'Modern Loft in Newtown') returning id into cv_rent_jon;
 
   insert into public.messages (conversation_id, sender_id, body, is_read, created_at) values
     (cv_rent_jane, u_jane,  'Good morning! I received the updated lease agreement.', true, now() - interval '5 hours'),
@@ -596,7 +600,7 @@ begin
   -- -------------------------------------------------------------------------
   insert into public.notifications (user_id, category, title, body, link_href, is_read, created_at) values
     (u_owner, 'message',     'New message from Jane Doe',              'Perfect, that answers it. Is the inspection on Wednesday still going ahead?', '/owner/messages',      false, now() - interval '40 minutes'),
-    (u_owner, 'application', 'New application for Modern Loft in Downtown', 'Jane Doe applied at $720/week.',                                        '/owner/applications',  false, now() - interval '1 day'),
+    (u_owner, 'application', 'New application for Modern Loft in Newtown', 'Jane Doe applied at $720/week.',                                         '/owner/applications',  false, now() - interval '1 day'),
     (u_owner, 'account',     'Identity verification approved',         'Your identity documents were verified by the trust team.',                    '/owner/profile',       true,  now() - interval '5 days'),
     (u_owner, 'property',    'Listing published',                      'Cozy Studio near University is now live in the marketplace.',                 '/owner/properties',    true,  now() - interval '9 days'),
 
@@ -607,7 +611,7 @@ begin
     (u_jane, 'review',   'Your submitted review is now live.',                                           null, '/tenant/notifications', true,  now() - interval '5 days'),
 
     (u_amelia, 'booking', 'New enquiry from Vanessa Park', 'Rental appraisal · Stanmore, NSW', '/dashboard/bookings', false, now() - interval '2 hours'),
-    (u_amelia, 'message', 'New message from Jonathan Hayes', 'Just confirming Tuesday 10am is still good for the appraisal?', '/dashboard/messages', false, now() - interval '3 hours'),
+    (u_amelia, 'message', 'New message from Jonathan Hayes', 'Just confirming the scheduled 10am appraisal is still good?', '/dashboard/messages?thread=' || cv_jh::text, false, now() - interval '3 hours'),
     (u_amelia, 'review',  'New 5-star review from Sarah Khoury', 'Excellent appraisal. Clear comps and practical recommendations.', '/dashboard/reviews', true, now() - interval '8 days');
 
   -- Keep the saved-providers screen non-empty.

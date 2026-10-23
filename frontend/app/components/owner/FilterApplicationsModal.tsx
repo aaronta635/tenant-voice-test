@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Button from '@/app/components/ui/Button';
 
 export type StatusFilter = 'pending' | 'accepted' | 'rejected' | 'shortlist';
@@ -22,15 +23,60 @@ export default function FilterApplicationsModal({
   onApply: () => void;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
   function toggle(id: StatusFilter) {
     onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
   }
 
+  useEffect(() => {
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    const root = dialogRef.current;
+    const focusable = root?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.[0]?.focus();
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previouslyFocused.current?.focus();
+    };
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-[#171a1f]/30 pt-24 backdrop-blur-[1px]">
-      <div className="w-full max-w-md rounded-2xl bg-background p-6 shadow-lg">
+      <button type="button" className="absolute inset-0" aria-label="Close filter" onClick={onClose} />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="filter-applications-title"
+        className="relative w-full max-w-md rounded-2xl bg-background p-6 shadow-lg"
+      >
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-2xl font-bold text-text-dark">Filter by Status</h2>
+          <h2 id="filter-applications-title" className="font-heading text-2xl font-bold text-text-dark">
+            Filter by Status
+          </h2>
         </div>
         <div className="mt-2 flex items-center justify-between">
           <p className="text-sm text-text-body">Select application statuses:</p>
@@ -60,8 +106,6 @@ export default function FilterApplicationsModal({
               <span className="text-sm font-medium text-text-dark">{option.label}</span>
             </label>
           ))}
-          {/* TODO: "Request More Info" has no corresponding field in the Applicant data
-              model yet — omitted from real filtering until that state is tracked. */}
         </div>
 
         <div className="mt-6 flex gap-3">

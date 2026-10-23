@@ -15,6 +15,7 @@ export type ListingDraft = {
   bathrooms?: string;
   description?: string;
   amenities?: string[];
+  photo_urls?: string[];
   price?: string;
   bond?: string;
   lease_term?: string;
@@ -43,6 +44,15 @@ export function clearDraft() {
   sessionStorage.removeItem(KEY);
 }
 
+/**
+ * The photo links a listing can be saved with: the public URLs that
+ * /uploads/property-image returns. Drafts from before uploads kept data: URLs,
+ * which the API refuses.
+ */
+export function uploadedPhotos(urls: string[] | undefined): string[] {
+  return (urls ?? []).filter((url) => /^https?:\/\//.test(url));
+}
+
 function toNumber(value: string | undefined): number | undefined {
   if (value === undefined || value.trim() === '') return undefined;
   const n = Number(value);
@@ -55,27 +65,43 @@ export function draftToPropertyInput(
 ): { input: PropertyInput } | { error: string } {
   const title = draft.title?.trim() || draft.address?.trim();
   const address = draft.address?.trim();
+  const suburb = draft.suburb?.trim();
+  const state = draft.state?.trim();
+  const postcode = draft.postcode?.trim();
   const price = toNumber(draft.price);
 
   if (!title) return { error: 'A listing title or address is required.' };
   if (!address) return { error: 'A property address is required.' };
+  // The shared database keeps no listing without them.
+  if (!suburb || !state || !postcode) return { error: 'City, state and postcode are required.' };
   if (price === undefined) return { error: 'A weekly rent amount is required.' };
+
+  const bedrooms = toNumber(draft.bedrooms);
+  const bathrooms = toNumber(draft.bathrooms);
+  const bond = toNumber(draft.bond);
+  const photos = uploadedPhotos(draft.photo_urls);
+
+  if (price !== undefined && price < 0) return { error: 'Weekly rent cannot be negative.' };
+  if (bedrooms !== undefined && bedrooms < 0) return { error: 'Bedrooms cannot be negative.' };
+  if (bathrooms !== undefined && bathrooms < 0) return { error: 'Bathrooms cannot be negative.' };
+  if (bond !== undefined && bond < 0) return { error: 'Bond cannot be negative.' };
 
   const input: PropertyInput = {
     title,
     address,
     price,
-    suburb: draft.suburb?.trim() || null,
-    state: draft.state?.trim() || null,
-    postcode: draft.postcode?.trim() || null,
+    suburb,
+    state,
+    postcode,
     property_type: draft.property_type?.trim() || null,
-    bedrooms: toNumber(draft.bedrooms) ?? null,
-    bathrooms: toNumber(draft.bathrooms) ?? null,
-    bond: toNumber(draft.bond) ?? null,
+    bedrooms: bedrooms ?? null,
+    bathrooms: bathrooms ?? null,
+    bond: bond ?? null,
     lease_term: draft.lease_term?.trim() || null,
     available_from: draft.available_from || null,
     description: draft.description?.trim() || null,
     amenities: draft.amenities && draft.amenities.length > 0 ? draft.amenities : null,
+    photo_urls: photos.length > 0 ? photos : null,
     status: 'available',
   };
   return { input };

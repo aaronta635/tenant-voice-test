@@ -1,238 +1,132 @@
 'use client';
 
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import {
-  api,
-  ApiError,
-  getAuthToken,
-  type Availability,
-  type ProviderService,
-} from '@/app/lib/api';
-import { formatMoney, formatServicePrice, formatTime } from '@/app/lib/format';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import FormMessage from '@/app/components/ui/FormMessage';
+import { api, ApiError, getAuthToken, type Availability, type ProviderService } from '@/app/lib/api';
+import { formatServicePrice } from '@/app/lib/format';
+import { nextBookableSlots, type BusyTime } from '@/app/lib/booking-slots';
+import { useClientReady } from '@/app/lib/use-client-ready';
+import { getClientSessionRole, messagesHrefForRole } from '@/app/lib/session-role';
+import { bookingSignInHref } from '@/app/lib/provider-view';
+import { safeNextPath } from '@/app/lib/auth-redirect';
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+type Props = { providerId: string; providerFirstName: string; services: ProviderService[]; availability: Availability[]; availabilityNote: string | null; requestedService?: { id: string }; listingHref?: string };
+const inputClass = 'mt-1 min-h-11 w-full rounded-xl border border-control-border bg-white px-3 py-2 text-sm text-text-dark';
 
-type Props = {
-  providerId: string;
-  providerFirstName: string;
-  services: ProviderService[];
-  availability: Availability[];
-  availabilityNote: string | null;
-};
-
-/** The next N calendar dates that fall on a day the provider works. */
-function nextSlots(availability: Availability[], count = 6) {
-  if (availability.length === 0) return [];
-  const byDay = new Map<number, Availability>();
-  for (const slot of availability) {
-    if (slot.is_available && !byDay.has(slot.day_of_week)) byDay.set(slot.day_of_week, slot);
-  }
-
-  const slots: { value: string; label: string }[] = [];
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-  for (let i = 1; i <= 21 && slots.length < count; i += 1) {
-    cursor.setDate(cursor.getDate() + 1);
-    const slot = byDay.get(cursor.getDay());
-    if (!slot) continue;
-    const date = new Date(cursor);
-    slots.push({
-      value: `${date.toISOString().slice(0, 10)}|${slot.start_time}`,
-      label: `${date.toLocaleDateString('en-AU', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-      })} · ${formatTime(slot.start_time)}`,
-    });
-  }
-  return slots;
-}
-
-export default function BookingCard({
-  providerId,
-  providerFirstName,
-  services,
-  availability,
-  availabilityNote,
-}: Props) {
-  const bookable = useMemo(() => services.filter((s) => s.is_active), [services]);
-  const slots = useMemo(() => nextSlots(availability), [availability]);
-
-  const [serviceId, setServiceId] = useState(bookable[0]?.id ?? '');
-  const [slot, setSlot] = useState(slots[0]?.value ?? '');
-  const [suburb, setSuburb] = useState('');
-  const [state, setState] = useState<'idle' | 'submitting' | 'booked' | 'error'>('idle');
+export default function BookingCard({ providerId, providerFirstName, services, availability, availabilityNote, requestedService, listingHref }: Props) {
+  const bookable = useMemo(() => services.filter((service) => service.is_active), [services]);
+  const clientReady = useClientReady();
+  const id = useId();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const router = useRouter();
+  const [serviceId, setServiceId] = useState(requestedService?.id ?? params.get('service') ?? bookable[0]?.id ?? '');
+  const [slot, setSlot] = useState(params.get('slot') ?? '');
+  const [suburb, setSuburb] = useState(params.get('suburb')?.slice(0,120) ?? '');
+  const [busy, setBusy] = useState<BusyTime[] | null>(null);
+  const [busyError, setBusyError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [messaging, setMessaging] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [messaged, setMessaged] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [invalidField, setInvalidField] = useState<'suburb' | 'date' | null>(null);
+  const [submitted, setSubmitted] = useState<{ title: string; label: string; suburb: string } | null>(null);
+  // "Book this service" on the profile sends a new request object. Applying it
+  // here instead of remounting keeps the visitor's time and suburb.
+  const [appliedRequest, setAppliedRequest] = useState(requestedService);
+  if (requestedService !== appliedRequest) {
+    setAppliedRequest(requestedService);
+    if (requestedService && submitted) { startAnotherRequest(); setServiceId(requestedService.id); }
+    else if (requestedService) changeService(requestedService.id);
+  }
+  const inFlight = useRef(false);
+  const successRef = useRef<HTMLDivElement>(null);
+  const service = bookable.find((item) => item.id === serviceId) ?? bookable[0];
+  const slots = useMemo(() => clientReady && busy ? nextBookableSlots(availability, service?.duration_minutes ?? 60, busy) : [], [availability, busy, clientReady, service?.duration_minutes]);
+  const validSlot = slots.some((item) => item.value === slot);
+  const signedIn = clientReady && !!getAuthToken();
+  const role = clientReady ? getClientSessionRole() : null;
+  const bookingsHref = role === 'Owner' ? '/owner/bookings' : role === 'Provider' ? '/dashboard/client-bookings' : '/tenant/bookings';
+  // Login refuses the whole return path when one part makes safeNextPath fail,
+  // such as a suburb typed as "100% Newtown" or "Newtown\NSW", so each part goes
+  // in only if the path bookingSignInHref builds still passes with it. The
+  // visitor's filtered listing is the one the page validated, never the raw ?from=.
+  const next = new URLSearchParams();
+  for (const [key, value] of Object.entries({ service: service?.id, slot, suburb, from: listingHref })) {
+    if (!value) continue;
+    next.set(key, value);
+    if (!safeNextPath(`${pathname}?${next}#booking`)) next.delete(key);
+  }
+  const loginHref = bookingSignInHref(pathname, next);
 
-  const service = bookable.find((s) => s.id === serviceId) ?? bookable[0];
-  const signedIn = typeof window !== 'undefined' && !!getAuthToken();
+  useEffect(() => {
+    let cancelled = false;
+    api.providers.busyTimes(providerId).then((items) => { if (!cancelled) { setBusy(items); setBusyError(null); } }).catch(() => { if (!cancelled) setBusyError('Could not check available times. Please try again.'); });
+    return () => { cancelled = true; };
+  }, [providerId,retry]);
+  useEffect(() => { if (submitted) successRef.current?.focus(); }, [submitted]);
 
-  const workingDays = Array.from(
-    new Set(availability.filter((a) => a.is_available).map((a) => a.day_of_week)),
-  )
-    .sort()
-    .map((day) => DAY_NAMES[day].slice(0, 3));
-
+  function changeService(nextId: string) {
+    const nextService = bookable.find((item) => item.id === nextId);
+    // Before the busy times load, keep the time: the date field checks it once they arrive.
+    if (busy && slot && !nextBookableSlots(availability,nextService?.duration_minutes ?? 60,busy).some((item) => item.value === slot)) {
+      setSlot(''); setNotice('The previous time does not fit this service. Please choose a new time.');
+    } else setNotice(null);
+    setServiceId(nextId); setError(null); setInvalidField(null);
+  }
+  function startAnotherRequest() {
+    setSubmitted(null); setSlot(''); setError(null); setNotice(null); setBusy(null); setRetry((value) => value + 1);
+  }
   async function handleBook(event: FormEvent) {
     event.preventDefault();
-    if (!service) return;
-    setError(null);
-    setState('submitting');
-    const [date, time] = slot.split('|');
+    if (inFlight.current || !service || submitted || !busy || busyError) return;
+    setError(null); setInvalidField(null);
+    if (!suburb.trim()) { setInvalidField('suburb'); setError('Enter the property suburb.'); document.getElementById(`${id}-suburb`)?.focus(); return; }
+    if (!validSlot) { setInvalidField('date'); setError('Choose an available date and time.'); document.getElementById(`${id}-date`)?.focus(); return; }
+    inFlight.current = true; setSubmitting(true);
+    const [date,time] = slot.split('|');
     try {
-      await api.bookings.create({
-        provider_id: providerId,
-        service_id: service.id,
-        property_suburb: suburb || null,
-        scheduled_date: date || null,
-        scheduled_time: time || null,
-      });
-      setState('booked');
+      await api.bookings.create({ provider_id: providerId, service_id: service.id, property_suburb: suburb.trim(), scheduled_date: date, scheduled_time: time });
+      setSubmitted({ title:service.title, label:slots.find((item) => item.value === slot)!.label, suburb:suburb.trim() });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not send that request.');
-      setState('error');
-    }
+      // Refresh occupied intervals after a race with another client; never choose a replacement silently.
+      setBusy(null);
+      setRetry((value) => value + 1);
+    } finally { inFlight.current = false; setSubmitting(false); }
   }
-
   async function handleMessage() {
-    setError(null);
+    if (messaging) return;
+    if (!signedIn) { router.push(loginHref); return; }
+    setMessaging(true); setError(null);
     try {
-      await api.conversations.startMarketplace({
-        provider_id: providerId,
-        subject: service?.title ?? null,
-      });
-      setMessaged(true);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not open a conversation.');
-    }
+      const thread = await api.conversations.startMarketplace({ provider_id: providerId, subject:service?.title ?? null });
+      router.push(`${messagesHrefForRole(role)}?thread=${thread.id}`);
+    } catch (err) { setError(err instanceof ApiError ? err.message : 'Could not open a conversation.'); }
+    finally { setMessaging(false); }
   }
+  if (submitted) return <div ref={successRef} tabIndex={-1} className="rounded-2xl border border-success bg-white p-5">
+    <h2 className="font-heading text-xl font-bold">Request sent</h2><p role="status" className="mt-3 text-sm text-text-body">{submitted.title} requested for {submitted.label} (Sydney time), {submitted.suburb}. The provider will review your request.</p>
+    <Link className="mt-4 inline-flex min-h-11 items-center font-semibold text-primary-strong underline" href={bookingsHref}>View your bookings</Link>
+    <button type="button" className="mt-2 block min-h-11 text-sm font-semibold text-text-body underline" onClick={startAnotherRequest}>Book another service</button>
+  </div>;
+  if (!service) return <section className="rounded-2xl border border-border bg-white p-5"><h2 className="font-bold">No services listed yet</h2><p className="mt-2 text-sm text-text-body">Message this provider to ask about their services.</p><button type="button" onClick={handleMessage} disabled={messaging} className="mt-3 min-h-11 font-semibold text-primary-strong underline">{messaging ? 'Opening…' : `Message ${providerFirstName}`}</button><FormMessage error={error} /></section>;
 
-  if (bookable.length === 0) {
-    return (
-      <div className="rounded-[22px] border border-[#efeff2] bg-white p-5 shadow-[0_12px_24px_rgba(14,42,72,0.1)]">
-        <p className="font-bold text-[#1b1b1f]">No services listed yet</p>
-        <p className="mt-2 text-sm text-[#5f6b76]">
-          This provider hasn&apos;t published a fixed-price service. Message them to ask about
-          availability.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <form
-      onSubmit={handleBook}
-      className="rounded-[22px] border border-[#efeff2] bg-white p-5 shadow-[0_12px_24px_rgba(14,42,72,0.1)]"
-    >
-      <p className="text-sm text-[#8c97a2]">From</p>
-      <p className="text-3xl font-extrabold text-[#1b1b1f]">
-        {formatMoney(service?.price)}{' '}
-        <span className="text-base font-semibold text-[#5f6b76]">
-          {service?.pricing_type === 'hourly' ? 'per hour' : 'fixed'}
-        </span>
-      </p>
-      {availabilityNote ? (
-        <p className="mt-2 text-sm font-semibold text-[#1b7c4f]">● {availabilityNote}</p>
-      ) : null}
-      {workingDays.length > 0 ? (
-        <p className="mt-1 text-xs text-[#8c97a2]">Works {workingDays.join(', ')}</p>
-      ) : null}
-
-      <label
-        className="mt-5 block text-xs font-bold tracking-wide text-[#8c97a2] uppercase"
-        htmlFor="booking-service"
-      >
-        Service
-      </label>
-      <select
-        id="booking-service"
-        value={serviceId}
-        onChange={(e) => setServiceId(e.target.value)}
-        className="mt-1 w-full appearance-none rounded-[12px] border border-[#efeff2] bg-white px-3 py-2.5 text-sm font-semibold text-[#1b1b1f] outline-none focus:border-primary"
-      >
-        {bookable.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.title} · {formatServicePrice(s.price, s.pricing_type)}
-          </option>
-        ))}
-      </select>
-
-      {slots.length > 0 ? (
-        <>
-          <label
-            className="mt-4 block text-xs font-bold tracking-wide text-[#8c97a2] uppercase"
-            htmlFor="booking-date"
-          >
-            Date
-          </label>
-          <select
-            id="booking-date"
-            value={slot}
-            onChange={(e) => setSlot(e.target.value)}
-            className="mt-1 w-full appearance-none rounded-[12px] border border-[#efeff2] bg-white px-3 py-2.5 text-sm font-semibold text-[#1b1b1f] outline-none focus:border-primary"
-          >
-            {slots.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </>
-      ) : null}
-
-      <label
-        className="mt-4 block text-xs font-bold tracking-wide text-[#8c97a2] uppercase"
-        htmlFor="booking-suburb"
-      >
-        Property suburb
-      </label>
-      <input
-        id="booking-suburb"
-        value={suburb}
-        onChange={(e) => setSuburb(e.target.value)}
-        placeholder="e.g. Newtown, NSW"
-        className="mt-1 w-full rounded-[12px] border border-[#efeff2] bg-white px-3 py-2.5 text-sm text-[#1b1b1f] outline-none focus:border-primary"
-      />
-
-      {error ? <p className="mt-3 text-sm font-medium text-[#b42318]">{error}</p> : null}
-
-      {signedIn ? (
-        <>
-          <button
-            type="submit"
-            disabled={state === 'submitting' || state === 'booked'}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-[0_4px_6px_rgba(99,106,232,0.3)] transition-colors hover:bg-[#5258d4] disabled:cursor-default disabled:bg-[#1b7c4f]"
-          >
-            {state === 'booked'
-              ? '✓ Request sent'
-              : state === 'submitting'
-                ? 'Sending…'
-                : 'Request to book'}
-          </button>
-          <button
-            type="button"
-            onClick={handleMessage}
-            className="mt-2 flex h-12 w-full items-center justify-center rounded-full border border-[#efeff2] text-sm font-bold text-[#1b1b1f] transition-colors hover:border-primary hover:text-primary"
-          >
-            {messaged ? '✓ Conversation started' : `Message ${providerFirstName}`}
-          </button>
-        </>
-      ) : (
-        <Link
-          href="/login"
-          className="mt-5 flex h-12 w-full items-center justify-center rounded-full bg-primary text-sm font-bold text-white"
-        >
-          Sign in to book
-        </Link>
-      )}
-
-      <p className="mt-3 text-center text-xs text-[#8c97a2]">
-        {state === 'booked'
-          ? `${service?.title} requested. You won’t be charged until the provider accepts.`
-          : `You won’t be charged until the provider accepts. From ${formatMoney(service?.price)}.`}
-      </p>
-    </form>
-  );
+  return <form onSubmit={handleBook} className="rounded-2xl border border-border bg-white p-5 print:hidden" aria-busy={submitting}>
+    <h2 className="font-heading text-xl font-bold">Request a booking</h2><p className="mt-2 text-2xl font-bold">{formatServicePrice(service.price,service.pricing_type)}</p>
+    {availabilityNote ? <p className="mt-2 text-sm text-text-body">{availabilityNote}</p> : null}
+    <fieldset disabled={submitting}>
+      <label className="mt-4 block text-sm font-semibold" htmlFor={`${id}-service`}>Service</label><select id={`${id}-service`} className={inputClass} value={service.id} onChange={(event) => changeService(event.target.value)}>{bookable.map((item) => <option key={item.id} value={item.id}>{item.title} · {formatServicePrice(item.price,item.pricing_type)}</option>)}</select>
+      <label className="mt-4 block text-sm font-semibold" htmlFor={`${id}-date`}>Date and time (Sydney)</label><select id={`${id}-date`} className={inputClass} value={validSlot ? slot : ''} onChange={(event) => { setSlot(event.target.value); setNotice(null); setError(null); }} required disabled={!busy || !!busyError || slots.length === 0} aria-invalid={invalidField === 'date' || undefined} aria-describedby={invalidField === 'date' ? `${id}-error` : undefined}><option value="">Choose a time</option>{slots.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+      {busyError ? <div role="alert" className="mt-2 text-sm text-danger">{busyError} <button type="button" onClick={() => { setBusyError(null); setBusy(null); setRetry((value) => value+1); }} className="min-h-11 font-semibold underline">Try again</button></div> : !busy ? <p role="status" className="mt-2 text-sm text-text-body">Checking available times…</p> : slots.length === 0 ? <p className="mt-2 text-sm text-text-body">No available times in the next two weeks. Message the provider to arrange a time.</p> : null}
+      {slot && !validSlot && busy ? <p role="status" className="mt-2 text-sm text-text-body">Your previously selected time is unavailable. Choose another time.</p> : null}
+      <label className="mt-4 block text-sm font-semibold" htmlFor={`${id}-suburb`}>Property suburb (required)</label><input id={`${id}-suburb`} className={inputClass} value={suburb} onChange={(event) => setSuburb(event.target.value)} required maxLength={120} autoComplete="address-level2" placeholder="e.g. Newtown, NSW" aria-invalid={invalidField === 'suburb' || undefined} aria-describedby={invalidField === 'suburb' ? `${id}-error` : undefined} />
+    </fieldset>
+    <div id={`${id}-error`}><FormMessage error={error} success={notice} /></div>
+    {signedIn ? <button type="submit" disabled={submitting || !busy || !!busyError || slots.length === 0} className="mt-4 min-h-12 w-full rounded-full border border-transparent bg-primary-strong px-3 text-sm font-bold text-white disabled:opacity-60">{submitting ? 'Sending…' : 'Request to book'}</button> : <Link href={loginHref} className="mt-4 flex min-h-12 items-center justify-center rounded-full border border-transparent bg-primary-strong text-sm font-bold text-white">Sign in to book</Link>}
+    <button type="button" onClick={handleMessage} disabled={messaging || submitting} className="mt-2 min-h-12 w-full rounded-full border border-control-border px-3 text-sm font-semibold">{messaging ? 'Opening…' : `Message ${providerFirstName}`}</button><p className="mt-3 text-center text-xs text-text-body">This sends a request for the provider to accept. No charge is made by this form.</p>
+  </form>;
 }

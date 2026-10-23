@@ -15,7 +15,7 @@ Three tiers:
 - **Nice-to-have** — build if capacity allows once Base is complete and stable. Not required for a successful demo.
 - **Stretch** — designed, mocked, or partially scaffolded. Not fully implemented under capstone scope. Shown at the demo as architecture and UI, not working functionality.
 
-### For anyone (including Claude Code) about to build a feature
+### For anyone about to build a feature
 
 1. Find it below. Which tier is it in?
 2. If it's **Base**, build it fully.

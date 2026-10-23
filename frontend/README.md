@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TenantVoice frontend
 
-## Getting Started
+The TenantVoice website: Next.js 16 (App Router), React 19, TypeScript and Tailwind CSS v4. It talks only to the FastAPI backend; it has no Supabase client and no keys. Setup for the whole repository, including the backend and the database, is in the root [`README.md`](../README.md).
 
-First, run the development server:
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The only setting is `NEXT_PUBLIC_API_URL`, the backend's API base (put it in `.env.local` to change it). It defaults to `http://localhost:8000/api/v1`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Check it
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint        # ESLint
+npx tsc --noEmit    # type check
+npm test            # Vitest unit and component tests
+npm run e2e         # browser journeys per role on a fake backend (see ../docs/e2e.md)
+npm run build       # production build
+```
 
-## Learn More
+## Where things are
 
-To learn more about Next.js, take a look at the following resources:
+| Path | What it holds |
+|---|---|
+| `app/(public)/` | Public pages: home, search, properties, provider and member profiles, help pages |
+| `app/(auth)/` | Sign in, register, password reset |
+| `app/(dashboard)/dashboard/` | The service provider workspace |
+| `app/(owner)/owner/` | The landlord and owner workspace |
+| `app/(tenant)/tenant/` | The tenant workspace |
+| `app/(admin)/admin/` | The admin console |
+| `app/components/` | Shared `ui/` primitives and feature components |
+| `app/lib/` | The typed API client (`api.ts`) and helpers |
+| `e2e/` | The dependency-free browser E2E harness |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Design tokens live in `app/globals.css` (`@theme`); the design system is described in [`../docs/DESIGN_SYSTEM.md`](../docs/DESIGN_SYSTEM.md).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16 changed several APIs and conventions from earlier versions. When unsure, check the guides for this version in `node_modules/next/dist/docs/`.

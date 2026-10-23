@@ -1,0 +1,1193 @@
+{
+  "generated_by": "scripts/snapshot_shared_schema.py",
+  "source": {"sha256": "6d158a35f50bfccdcbc536a326936ce57181b84d5a20b85a61fb0d76d3092d47", "title": "standard public schema", "version": "14.18"},
+  "schema": "public",
+  "tables": {
+    "_prisma_migrations": {
+      "columns": {
+        "id": {"format": "character varying", "type": "string", "not_null": true, "has_default": false, "max_length": 36, "primary_key": true},
+        "checksum": {"format": "character varying", "type": "string", "not_null": true, "has_default": false, "max_length": 64},
+        "finished_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "migration_name": {"format": "character varying", "type": "string", "not_null": true, "has_default": false, "max_length": 255},
+        "logs": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "rolled_back_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "started_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "applied_steps_count": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0}
+      }
+    },
+    "agent_profiles": {
+      "columns": {
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "users", "column": "id"}},
+        "agency_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "license_number": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "market_area": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "verification_status": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "api_rate_limits": {
+      "columns": {
+        "key_hash": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "window_started_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "request_count": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 1},
+        "expires_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "application_documents": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "application_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rental_applications", "column": "id"}},
+        "document_type": {"format": "public.\"ProfileDocumentType\"", "type": "string", "enum": ["PASSPORT", "DRIVERS_LICENCE", "MEDICARE_CARD", "BIRTH_CERTIFICATE", "BANK_STATEMENT", "CENTRELINK_STATEMENT", "UTILITY_BILL", "RENT_LEDGER", "RENT_RECEIPT", "VEHICLE_REGISTRATION", "WRITTEN_REFERENCE", "OTHER", "GOVERNMENT_PHOTO_ID", "PROOF_OF_PROPERTY_OWNERSHIP", "PROPERTY_MANAGEMENT_AUTHORITY", "TRADE_LICENCE", "PUBLIC_LIABILITY_INSURANCE", "POLICE_CHECK"], "not_null": true, "has_default": false},
+        "file_url": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "status": {"format": "public.\"ApplicationDocumentStatus\"", "type": "string", "enum": ["UPLOADED", "VERIFIED", "REJECTED", "EXPIRED"], "not_null": true, "has_default": true, "default": "UPLOADED"},
+        "verified_by_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "verified_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "application_status_events": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "application_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rental_applications", "column": "id"}},
+        "from_status": {"format": "public.\"ApplicationStatus\"", "type": "string", "enum": ["SUBMITTED", "UNDER_REVIEW", "SHORTLISTED", "APPROVED", "REJECTED", "WITHDRAWN", "EXPIRED"], "not_null": false, "has_default": false},
+        "to_status": {"format": "public.\"ApplicationStatus\"", "type": "string", "enum": ["SUBMITTED", "UNDER_REVIEW", "SHORTLISTED", "APPROVED", "REJECTED", "WITHDRAWN", "EXPIRED"], "not_null": true, "has_default": false},
+        "note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "changed_by_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"}
+      }
+    },
+    "complaint_events": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "complaint_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "complaints", "column": "id"}},
+        "actor_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "event_type": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"}
+      }
+    },
+    "complaints": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "reporter_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "against_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "property_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "properties", "column": "id"}},
+        "category": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "description": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "severity": {"format": "public.\"ComplaintSeverity\"", "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"], "not_null": true, "has_default": true, "default": "MEDIUM"},
+        "status": {"format": "public.\"ComplaintStatus\"", "type": "string", "enum": ["OPEN", "IN_REVIEW", "ESCALATED", "RESOLVED", "CLOSED"], "not_null": true, "has_default": true, "default": "OPEN"},
+        "lodged_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "resolved_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false}
+      }
+    },
+    "connection_requests": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "sender_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "receiver_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "status": {"format": "public.\"ConnectionStatus\"", "type": "string", "enum": ["PENDING", "ACCEPTED", "DECLINED", "BLOCKED", "WITHDRAWN"], "not_null": true, "has_default": true, "default": "PENDING"},
+        "context_type": {"format": "public.\"ConnectionContextType\"", "type": "string", "enum": ["NETWORK", "LISTING", "APPLICATION", "MANUAL"], "not_null": true, "has_default": true, "default": "NETWORK"},
+        "context_entity_id": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "responded_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "conversation_participants": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "conversation_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "conversations", "column": "id"}},
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "joined_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "last_read_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "is_muted": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "role_label": {"format": "text", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "conversations": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "conversation_type": {"format": "public.\"ConversationType\"", "type": "string", "enum": ["DIRECT", "GROUP", "APPLICATION", "PROPERTY", "SYSTEM"], "not_null": true, "has_default": false},
+        "subject": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "application_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "rental_applications", "column": "id"}},
+        "created_by_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "landlord_profiles": {
+      "columns": {
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "users", "column": "id"}},
+        "agency_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "license_number": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "portfolio_size": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "verification_status": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "listing_favorites": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "listings": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "property_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "properties", "column": "id"}},
+        "created_by_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "description": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "weekly_rent": {"format": "numeric", "type": "number", "not_null": true, "has_default": false},
+        "bond_amount": {"format": "numeric", "type": "number", "not_null": false, "has_default": false},
+        "available_from": {"format": "date", "type": "string", "not_null": false, "has_default": false},
+        "lease_term_months": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "status": {"format": "public.\"ListingStatus\"", "type": "string", "enum": ["DRAFT", "PUBLISHED", "PAUSED", "APPLICATIONS_CLOSED", "LEASED", "ARCHIVED"], "not_null": true, "has_default": true, "default": "DRAFT"},
+        "inspection_details": {"format": "jsonb", "not_null": false, "has_default": false},
+        "published_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "maintenance_work_orders": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "complaint_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "complaints", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "tenant_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "landlord_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "assigned_worker_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "OPEN"},
+        "appointment_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "estimated_duration_minutes": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "appointment_note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "completed_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "completion_note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "tenant_rating": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "rated_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "conversation_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "conversations", "column": "id"}},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "message_attachments": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "message_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "messages", "column": "id"}},
+        "file_url": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "file_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "mime_type": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "file_size_bytes": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"}
+      }
+    },
+    "messages": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "conversation_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "conversations", "column": "id"}},
+        "sender_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "message_type": {"format": "public.\"MessageType\"", "type": "string", "enum": ["TEXT", "SYSTEM", "FILE"], "not_null": true, "has_default": true, "default": "TEXT"},
+        "content": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "edited_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "deleted_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "mobile_admin_alerts": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "complaint_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "complaints", "column": "id"}},
+        "category_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "mobile_admin_issue_categories", "column": "id"}},
+        "severity": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "OPEN"},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "reason": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "threshold_snapshot": {"format": "jsonb", "not_null": true, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": true, "has_default": false},
+        "escalated_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "escalated_by": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "escalation_note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_admin_audit_entries": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "actor_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "action": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "entity_type": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "entity_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false},
+        "summary": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_admin_issue_categories": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "code": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "name": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "description": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": ""},
+        "severity": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "sla_hours": {"format": "int32", "type": "integer", "not_null": true, "has_default": false},
+        "routing_team": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "Complaint Resolution Team"},
+        "source_categories": {"format": "text[]", "type": "array", "not_null": true, "has_default": false},
+        "keywords": {"format": "text[]", "type": "array", "not_null": true, "has_default": false},
+        "is_active": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": true},
+        "created_by": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "updated_by": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_admin_referral_packages": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "alert_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "mobile_admin_alerts", "column": "id"}},
+        "complaint_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "complaints", "column": "id"}},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "REFERRED"},
+        "assigned_team": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "Housing Resolution Team"},
+        "prepared_snapshot": {"format": "jsonb", "not_null": true, "has_default": false},
+        "evidence_snapshot": {"format": "jsonb", "not_null": true, "has_default": false},
+        "admin_note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "referred_by": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "referred_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "reviewed_by": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "reviewed_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "regulator_note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_ai_chat_usage": {
+      "columns": {
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "users", "column": "id"}},
+        "usage_date": {"format": "date", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_DATE", "primary_key": true},
+        "calls": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "last_call": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "mobile_ai_operations": {
+      "columns": {
+        "owner_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "users", "column": "id"}},
+        "request_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "operation": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "payload": {"format": "jsonb", "not_null": true, "has_default": false},
+        "result": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_ai_service_jobs": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "owner_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "provider_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "request": {"format": "jsonb", "not_null": true, "has_default": false},
+        "payload": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_ai_tenancy_records": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "owner_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "tenant_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "application_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rental_applications", "column": "id"}},
+        "request": {"format": "jsonb", "not_null": true, "has_default": false},
+        "payload": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_inspection_bookings": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "slot_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "mobile_inspection_slots", "column": "id"}},
+        "owner_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "tenant_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "pending"},
+        "note": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_inspection_requests": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "slot_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "tenant_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "Pending"},
+        "note": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": ""},
+        "response_note": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": ""},
+        "inspection_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "mobile_inspections", "column": "id"}},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "decided_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "mobile_inspection_slots": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "owner_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "starts_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "duration_minutes": {"format": "int32", "type": "integer", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "open"},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_inspections": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "inspection_type": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "scheduled_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "attendee_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "notes": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": ""},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "Scheduled"},
+        "status_history": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "mobile_provider_services": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "provider_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "description": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": ""},
+        "pricing_type": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "flat"},
+        "price": {"format": "numeric", "type": "number", "not_null": true, "has_default": true, "default": 0},
+        "duration": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": ""},
+        "inclusions": {"format": "jsonb", "not_null": true, "has_default": false},
+        "exclusions": {"format": "jsonb", "not_null": true, "has_default": false},
+        "service_area": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": ""},
+        "category": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "GENERAL"},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "draft"},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "notifications": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "body": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "category": {"format": "public.\"NotificationCategory\"", "type": "string", "enum": ["system", "bid", "social", "project"], "not_null": true, "has_default": false},
+        "link": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "is_read": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"}
+      }
+    },
+    "owner_ai_accounts": {
+      "columns": {
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "enabled": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "allow_complaint_summaries": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "allow_provider_search": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "daily_date": {"format": "date", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_DATE"},
+        "daily_count": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "last_request_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "active_lease": {"format": "uuid", "type": "string", "not_null": false, "has_default": false},
+        "busy_until": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_ai_turns": {
+      "columns": {
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "owner_ai_accounts", "column": "firebase_uid"}},
+        "request_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "question": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "reply": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "lease": {"format": "uuid", "type": "string", "not_null": true, "has_default": false},
+        "attempts": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 1},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_assistant_file_grants": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "path": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "name": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "mime": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_assistant_records": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "recipient_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "kind": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "draft"},
+        "payload": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_assistant_requests": {
+      "columns": {
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "users", "column": "id"}},
+        "request_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "operation": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "payload": {"format": "jsonb", "not_null": true, "has_default": false},
+        "result": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_assistant_turns": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "question": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "reply": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "chat_request_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "owner_bridge_inbox": {
+      "columns": {
+        "id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "recipient_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "owner_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_ai_accounts", "column": "firebase_uid"}},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "body": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": true, "has_default": false},
+        "due_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "is_read": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "mobile_notification_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "owner_bridge_integration_events": {
+      "columns": {
+        "event_id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "job_id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_bridge_integrations", "column": "id"}},
+        "payload": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_bridge_integrations": {
+      "columns": {
+        "id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_ai_accounts", "column": "firebase_uid"}},
+        "spec": {"format": "jsonb", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "pending"},
+        "provider_id": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "action_url": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_bridge_records": {
+      "columns": {
+        "id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_ai_accounts", "column": "firebase_uid"}},
+        "property_id": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "kind": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "payload": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_bridge_requests": {
+      "columns": {
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "owner_ai_accounts", "column": "firebase_uid"}},
+        "request_id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "task": {"format": "jsonb", "not_null": true, "has_default": false},
+        "result": {"format": "jsonb", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_lease_documents": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_ai_accounts", "column": "firebase_uid"}},
+        "record_id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_bridge_records", "column": "id"}},
+        "kind": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "file_name": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "object_path": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "size_bytes": {"format": "int64", "type": "integer", "not_null": true, "has_default": false},
+        "sha256": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "state": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "ready"},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_lease_signing_audit": {
+      "columns": {
+        "id": {"format": "int64", "type": "integer", "not_null": true, "has_default": false, "primary_key": true},
+        "job_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "owner_lease_signing_jobs", "column": "id"}},
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "record_id": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "event": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "details": {"format": "jsonb", "not_null": true, "has_default": false},
+        "occurred_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "owner_lease_signing_jobs": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "firebase_uid": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_ai_accounts", "column": "firebase_uid"}},
+        "record_id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "owner_bridge_records", "column": "id"}},
+        "test_mode": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": false},
+        "state": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "body_sha256": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "manifest": {"format": "jsonb", "not_null": true, "has_default": false},
+        "signers": {"format": "jsonb", "not_null": true, "has_default": false},
+        "provider_id": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "signed_object_path": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "signed_sha256": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "confirmed_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "completed_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "profile_document_deletion_queue": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "bucket": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "profile-documents"},
+        "file_path": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "reason": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "requested_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "deleted_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "attempts": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "last_error": {"format": "text", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "profile_document_review_events": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "document_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "profile_documents", "column": "id"}},
+        "subject_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "reviewer_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "subject_role": {"format": "public.\"UserRole\"", "type": "string", "enum": ["TENANT", "LANDLORD", "AGENT", "SERVICE_PROVIDER", "ADMIN", "REGULATOR"], "not_null": true, "has_default": false},
+        "document_type": {"format": "public.\"ProfileDocumentType\"", "type": "string", "enum": ["PASSPORT", "DRIVERS_LICENCE", "MEDICARE_CARD", "BIRTH_CERTIFICATE", "BANK_STATEMENT", "CENTRELINK_STATEMENT", "UTILITY_BILL", "RENT_LEDGER", "RENT_RECEIPT", "VEHICLE_REGISTRATION", "WRITTEN_REFERENCE", "OTHER", "GOVERNMENT_PHOTO_ID", "PROOF_OF_PROPERTY_OWNERSHIP", "PROPERTY_MANAGEMENT_AUTHORITY", "TRADE_LICENCE", "PUBLIC_LIABILITY_INSURANCE", "POLICE_CHECK"], "not_null": true, "has_default": false},
+        "review_status": {"format": "public.\"ProfileDocumentReviewStatus\"", "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"], "not_null": true, "has_default": false},
+        "rejection_reason": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "reviewer_email": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "reviewer_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "subject_email": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "subject_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "reviewed_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "profile_documents": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "document_type": {"format": "public.\"ProfileDocumentType\"", "type": "string", "enum": ["PASSPORT", "DRIVERS_LICENCE", "MEDICARE_CARD", "BIRTH_CERTIFICATE", "BANK_STATEMENT", "CENTRELINK_STATEMENT", "UTILITY_BILL", "RENT_LEDGER", "RENT_RECEIPT", "VEHICLE_REGISTRATION", "WRITTEN_REFERENCE", "OTHER", "GOVERNMENT_PHOTO_ID", "PROOF_OF_PROPERTY_OWNERSHIP", "PROPERTY_MANAGEMENT_AUTHORITY", "TRADE_LICENCE", "PUBLIC_LIABILITY_INSURANCE", "POLICE_CHECK"], "not_null": true, "has_default": false},
+        "file_url": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "points_value": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "is_required": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "is_verified": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "verified_by_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "verified_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "review_status": {"format": "public.\"ProfileDocumentReviewStatus\"", "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"], "not_null": true, "has_default": true, "default": "PENDING"},
+        "rejection_reason": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "submitted_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "properties": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "manager_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "property_type": {"format": "public.\"PropertyType\"", "type": "string", "enum": ["APARTMENT", "HOUSE", "STUDIO", "TOWNHOUSE", "UNIT", "DUPLEX", "OTHER"], "not_null": true, "has_default": true, "default": "OTHER"},
+        "nickname": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "address_line_1": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "address_line_2": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "suburb": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "state": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "postcode": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "country": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "AU"},
+        "latitude": {"format": "numeric", "type": "number", "not_null": false, "has_default": false},
+        "longitude": {"format": "numeric", "type": "number", "not_null": false, "has_default": false},
+        "bedrooms": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "bathrooms": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "parking_spaces": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "pet_friendly": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "property_media": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "property_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "properties", "column": "id"}},
+        "media_url": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "media_type": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "caption": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "sort_order": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "is_cover": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "storage_bucket": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "storage_path": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "file_size_bytes": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "uploaded_by_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}}
+      }
+    },
+    "recommendations": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "target_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "recommendation_type": {"format": "public.\"RecommendationType\"", "type": "string", "enum": ["PROPERTY", "USER", "PROFILE_MATCH", "SERVICE_PROVIDER"], "not_null": true, "has_default": false},
+        "entity_type": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "entity_id": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "score": {"format": "numeric", "type": "number", "not_null": false, "has_default": false},
+        "reason": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "source": {"format": "public.\"RecommendationSource\"", "type": "string", "enum": ["AI", "RULE_ENGINE", "MANUAL"], "not_null": true, "has_default": true, "default": "RULE_ENGINE"},
+        "payload": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "expires_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "red_flag_events": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "rule_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "red_flag_rules", "column": "id"}},
+        "property_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "properties", "column": "id"}},
+        "complaint_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "complaints", "column": "id"}},
+        "summary": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "status": {"format": "public.\"RedFlagStatus\"", "type": "string", "enum": ["OPEN", "ACKNOWLEDGED", "RESOLVED", "DISMISSED"], "not_null": true, "has_default": true, "default": "OPEN"},
+        "triggered_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "resolved_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "evidence": {"format": "jsonb", "not_null": false, "has_default": false}
+      }
+    },
+    "red_flag_rules": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "rule_key": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "name": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "description": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "threshold_count": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 3},
+        "window_days": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 30},
+        "severity": {"format": "public.\"ComplaintSeverity\"", "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"], "not_null": true, "has_default": true, "default": "HIGH"},
+        "is_active": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": true},
+        "config": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "trigger_mode": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "WINDOW"}
+      }
+    },
+    "regulatory_red_flags": {
+      "columns": {
+        "id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "severity": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "area": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "category": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "reports": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "threshold": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "New"},
+        "raised_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "regulatory_survey_questions": {
+      "columns": {
+        "id": {"format": "int64", "type": "integer", "not_null": true, "has_default": false, "primary_key": true},
+        "survey_id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "references": {"table": "regulatory_surveys", "column": "id"}},
+        "sort_order": {"format": "int32", "type": "integer", "not_null": true, "has_default": false},
+        "question_text": {"format": "text", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "regulatory_surveys": {
+      "columns": {
+        "id": {"format": "text", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "title": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "audience": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "Draft"},
+        "responses": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "target_responses": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 1000},
+        "closes_at": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "Not scheduled"},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "rent_agreement_owner_signatures": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "agreement_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rent_agreements", "column": "id"}},
+        "tenant_signature_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "tenant_lease_signatures", "column": "id"}},
+        "document_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "signer_name": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "signing_method": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "TYPED_NAME"},
+        "consent_text": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "consent_version": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "document_storage_path": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "document_sha256": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "signed_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "rent_agreements": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "application_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rental_applications", "column": "id"}},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "tenant_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "owner_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "rent_amount": {"format": "numeric", "type": "number", "not_null": true, "has_default": false},
+        "rent_frequency": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "currency": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "AUD"},
+        "start_date": {"format": "date", "type": "string", "not_null": true, "has_default": false},
+        "end_date": {"format": "date", "type": "string", "not_null": false, "has_default": false},
+        "first_due_date": {"format": "date", "type": "string", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "DRAFT"},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "tenant_confirmed_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "activated_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false}
+      }
+    },
+    "rent_charges": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "agreement_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rent_agreements", "column": "id"}},
+        "period_start": {"format": "date", "type": "string", "not_null": true, "has_default": false},
+        "period_end": {"format": "date", "type": "string", "not_null": true, "has_default": false},
+        "due_date": {"format": "date", "type": "string", "not_null": true, "has_default": false},
+        "amount_due": {"format": "numeric", "type": "number", "not_null": true, "has_default": false},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "DRAFT"},
+        "issued_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "rent_payments": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "charge_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rent_charges", "column": "id"}},
+        "amount": {"format": "numeric", "type": "number", "not_null": true, "has_default": false},
+        "currency": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "AUD"},
+        "status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "PENDING"},
+        "provider": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "provider_payment_id": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "idempotency_key": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "verified_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "rental_applications": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "listing_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "listings", "column": "id"}},
+        "applicant_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "status": {"format": "public.\"ApplicationStatus\"", "type": "string", "enum": ["SUBMITTED", "UNDER_REVIEW", "SHORTLISTED", "APPROVED", "REJECTED", "WITHDRAWN", "EXPIRED"], "not_null": true, "has_default": true, "default": "SUBMITTED"},
+        "offer_weekly_rent": {"format": "numeric", "type": "number", "not_null": true, "has_default": false},
+        "message": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "submitted_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "last_status_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "reviews": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "property_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "properties", "column": "id"}},
+        "reviewer_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "reviewed_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "rating": {"format": "int32", "type": "integer", "not_null": true, "has_default": false},
+        "title": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "body": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "media_urls": {"format": "jsonb", "not_null": false, "has_default": false},
+        "is_verified_interaction": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "status": {"format": "public.\"ReviewStatus\"", "type": "string", "enum": ["PUBLISHED", "HIDDEN", "FLAGGED", "ARCHIVED"], "not_null": true, "has_default": true, "default": "PUBLISHED"},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "landlord_reply": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "landlord_replied_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "landlord_rating": {"format": "int32", "type": "integer", "not_null": true, "has_default": false}
+      }
+    },
+    "service_provider_profiles": {
+      "columns": {
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "users", "column": "id"}},
+        "company_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "service_categories": {"format": "jsonb", "not_null": false, "has_default": false},
+        "service_area": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "pricing_summary": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "verification_status": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "tenant_lease_documents": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "agreement_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rent_agreements", "column": "id"}},
+        "storage_path": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "original_filename": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "uploaded_by_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "tenant_lease_signature_evidence_files": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "agreement_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rent_agreements", "column": "id"}},
+        "source_document_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false},
+        "tenant_signature_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "tenant_lease_signatures", "column": "id"}},
+        "owner_signature_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rent_agreement_owner_signatures", "column": "id"}},
+        "storage_path": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "source_pdf_sha256": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "evidence_pdf_sha256": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "generated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "tenant_lease_signatures": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "agreement_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "rent_agreements", "column": "id"}},
+        "document_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false},
+        "signer_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "signer_name": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "signing_method": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "TYPED_NAME"},
+        "consent_text": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "consent_version": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "document_storage_path": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "document_sha256": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "signed_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "tenant_profiles": {
+      "columns": {
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true, "references": {"table": "users", "column": "id"}},
+        "about_me": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "budget_min": {"format": "numeric", "type": "number", "not_null": false, "has_default": false},
+        "budget_max": {"format": "numeric", "type": "number", "not_null": false, "has_default": false},
+        "preferred_locations": {"format": "jsonb", "not_null": false, "has_default": false},
+        "move_in_date": {"format": "date", "type": "string", "not_null": false, "has_default": false},
+        "household_size": {"format": "int32", "type": "integer", "not_null": false, "has_default": false},
+        "has_pets": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "completion_score": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "verification_points": {"format": "int32", "type": "integer", "not_null": true, "has_default": true, "default": 0},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false}
+      }
+    },
+    "user_account_archive_events": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": true, "default": "gen_random_uuid()", "primary_key": true},
+        "target_user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "actor_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "target_role": {"format": "public.\"UserRole\"", "type": "string", "enum": ["TENANT", "LANDLORD", "AGENT", "SERVICE_PROVIDER", "ADMIN", "REGULATOR"], "not_null": true, "has_default": false},
+        "original_email": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "archived_email": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "target_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "actor_email": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "actor_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "archived_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "now()"}
+      }
+    },
+    "user_role_assignments": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "user_id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "role": {"format": "public.\"UserRole\"", "type": "string", "enum": ["TENANT", "LANDLORD", "AGENT", "SERVICE_PROVIDER", "ADMIN", "REGULATOR"], "not_null": true, "has_default": false},
+        "is_primary": {"format": "boolean", "type": "boolean", "not_null": true, "has_default": true, "default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"}
+      }
+    },
+    "users": {
+      "columns": {
+        "id": {"format": "uuid", "type": "string", "not_null": true, "has_default": false, "primary_key": true},
+        "auth_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false},
+        "email": {"format": "text", "type": "string", "not_null": true, "has_default": false},
+        "full_name": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "phone": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "avatar_url": {"format": "text", "type": "string", "not_null": false, "has_default": false},
+        "primary_role": {"format": "public.\"UserRole\"", "type": "string", "enum": ["TENANT", "LANDLORD", "AGENT", "SERVICE_PROVIDER", "ADMIN", "REGULATOR"], "not_null": true, "has_default": true, "default": "TENANT"},
+        "status": {"format": "public.\"AccountStatus\"", "type": "string", "enum": ["PENDING_VERIFICATION", "ACTIVE", "SUSPENDED", "DEACTIVATED"], "not_null": true, "has_default": true, "default": "ACTIVE"},
+        "locale": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "en-AU"},
+        "metadata": {"format": "jsonb", "not_null": false, "has_default": false},
+        "created_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": true, "default": "CURRENT_TIMESTAMP"},
+        "updated_at": {"format": "timestamp with time zone", "type": "string", "not_null": true, "has_default": false},
+        "deleted_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "verification_status": {"format": "text", "type": "string", "not_null": true, "has_default": true, "default": "PENDING"},
+        "approved_by_user_id": {"format": "uuid", "type": "string", "not_null": false, "has_default": false, "references": {"table": "users", "column": "id"}},
+        "approved_at": {"format": "timestamp with time zone", "type": "string", "not_null": false, "has_default": false},
+        "rejection_reason": {"format": "text", "type": "string", "not_null": false, "has_default": false}
+      }
+    }
+  },
+  "rpcs": {
+    "add_property_image": {"methods": ["post"], "params": {"p_caption": {"format": "text", "type": "string", "required": true}, "p_file_size_bytes": {"format": "int32", "type": "integer", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_media_type": {"format": "text", "type": "string", "required": true}, "p_media_url": {"format": "text", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_storage_bucket": {"format": "text", "type": "string", "required": true}, "p_storage_path": {"format": "text", "type": "string", "required": true}}},
+    "archive_user_for_reregistration": {"methods": ["post"], "params": {"p_actor_user_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_target_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "assign_maintenance_work_order": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_landlord_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_tenant_name": {"format": "text", "type": "string", "required": true}, "p_worker_id": {"format": "uuid", "type": "string", "required": true}}},
+    "consume_api_rate_limit": {"methods": ["post"], "params": {"p_key_hash": {"format": "text", "type": "string", "required": true}, "p_limit": {"format": "int32", "type": "integer", "required": true}, "p_window_seconds": {"format": "int32", "type": "integer", "required": true}}},
+    "contact_listing_owner": {"methods": ["post"], "params": {"p_content": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_tenant_id": {"format": "uuid", "type": "string", "required": true}}},
+    "create_general_complaint": {"methods": ["post"], "params": {"p_category": {"format": "text", "type": "string", "required": true}, "p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_reporter_user_id": {"format": "uuid", "type": "string", "required": true}, "p_severity": {"format": "text", "type": "string", "required": true}}},
+    "create_maintenance_request": {"methods": ["post"], "params": {"p_category": {"format": "text", "type": "string", "required": true}, "p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_landlord_id": {"format": "uuid", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_role": {"format": "text", "type": "string", "required": true}, "p_severity": {"format": "text", "type": "string", "required": true}, "p_tenant_id": {"format": "uuid", "type": "string", "required": true}}},
+    "create_property_with_listing": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_property_type": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "create_property_with_listing_v2": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_pet_friendly": {"format": "boolean", "type": "boolean", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_property_type": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "create_property_with_listing_v3": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_lease_term_months": {"format": "int32", "type": "integer", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_parking_spaces": {"format": "int32", "type": "integer", "required": true}, "p_pet_friendly": {"format": "boolean", "type": "boolean", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_property_type": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "current_app_user_id": {"methods": ["get", "post"], "params": {}},
+    "delete_owned_draft_listing": {"methods": ["post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "delete_owned_listing": {"methods": ["post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "delete_owned_unrented_property": {"methods": ["post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "delete_profile_document": {"methods": ["post"], "params": {"p_document_type": {"format": "text", "type": "string", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "delete_property_image": {"methods": ["post"], "params": {"p_media_id": {"format": "uuid", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "evaluate_red_flag_rule": {"methods": ["post"], "params": {"p_evaluated_at": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_rule_id": {"format": "uuid", "type": "string", "required": true}}},
+    "evaluate_red_flag_rule_for_property": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_evaluated_at": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_rule_id": {"format": "uuid", "type": "string", "required": true}}},
+    "find_auth_user_id_by_email": {"methods": ["get", "post"], "params": {"p_email": {"format": "text", "type": "string", "required": true}}},
+    "generate_upcoming_rent_charges": {"methods": ["post"], "params": {"p_agreement_id": {"format": "uuid", "type": "string", "required": true}}},
+    "get_conversation_summaries": {"methods": ["get", "post"], "params": {"p_limit": {"format": "int32", "type": "integer", "required": false}, "p_offset": {"format": "int32", "type": "integer", "required": false}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "get_unread_message_count": {"methods": ["get", "post"], "params": {"p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mark_conversation_read": {"methods": ["post"], "params": {"p_conversation_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mark_profile_document_object_deleted": {"methods": ["post"], "params": {"p_file_path": {"format": "text", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}}},
+    "mobile_account_json": {"methods": ["get", "post"], "params": {"p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_add_property_image": {"methods": ["post"], "params": {"p_file_size_bytes": {"format": "int32", "type": "integer", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_media_type": {"format": "text", "type": "string", "required": true}, "p_media_url": {"format": "text", "type": "string", "required": true}, "p_storage_path": {"format": "text", "type": "string", "required": true}}},
+    "mobile_admin_alerts": {"methods": ["post"], "params": {}},
+    "mobile_admin_analytics": {"methods": ["post"], "params": {}},
+    "mobile_admin_audit_logs": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_complaints": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_decide_verification": {"methods": ["post"], "params": {"p_decision": {"format": "text", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_admin_escalate_alert": {"methods": ["post"], "params": {"p_alert_id": {"format": "uuid", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}}},
+    "mobile_admin_issue_categories": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_log_action": {"methods": ["post"], "params": {"p_action": {"format": "text", "type": "string", "required": true}, "p_actor": {"format": "uuid", "type": "string", "required": true}, "p_entity_id": {"format": "uuid", "type": "string", "required": true}, "p_entity_type": {"format": "text", "type": "string", "required": true}, "p_metadata": {"format": "jsonb", "required": false}, "p_summary": {"format": "text", "type": "string", "required": true}}},
+    "mobile_admin_moderate_review": {"methods": ["post"], "params": {"p_action": {"format": "text", "type": "string", "required": true}, "p_review_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_admin_moderation_reports": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_overview": {"methods": ["post"], "params": {}},
+    "mobile_admin_pending_listings": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_refresh_alerts": {"methods": ["post"], "params": {}},
+    "mobile_admin_save_issue_category": {"methods": ["post"], "params": {"p_category_id": {"format": "uuid", "type": "string", "required": true}, "p_payload": {"format": "jsonb", "required": true}}},
+    "mobile_admin_stats": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_tenants": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_toggle_issue_category": {"methods": ["post"], "params": {"p_category_id": {"format": "uuid", "type": "string", "required": true}, "p_is_active": {"format": "boolean", "type": "boolean", "required": true}}},
+    "mobile_admin_update_listing": {"methods": ["post"], "params": {"p_action": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_admin_update_user_status": {"methods": ["post"], "params": {"p_status": {"format": "text", "type": "string", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_admin_users": {"methods": ["get", "post"], "params": {}},
+    "mobile_admin_verification_queue": {"methods": ["get", "post"], "params": {}},
+    "mobile_ai_chat_limit": {"methods": ["post"], "params": {}},
+    "mobile_ai_deliver_inbox": {"methods": ["post"], "params": {}},
+    "mobile_ai_identity": {"methods": ["get", "post"], "params": {}},
+    "mobile_ai_jobs": {"methods": ["get", "post"], "params": {}},
+    "mobile_ai_provider_job": {"methods": ["post"], "params": {"p_action": {"format": "jsonb", "required": true}}},
+    "mobile_ai_provider_reviews": {"methods": ["get", "post"], "params": {"p_provider": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_ai_providers": {"methods": ["get", "post"], "params": {}},
+    "mobile_ai_save_property": {"methods": ["post"], "params": {"p_action": {"format": "jsonb", "required": true}, "p_request": {"format": "uuid", "type": "string", "required": true}, "p_version": {"format": "text", "type": "string", "required": false}}},
+    "mobile_ai_task": {"methods": ["post"], "params": {"p_task": {"format": "jsonb", "required": true}}},
+    "mobile_ai_tenancies": {"methods": ["get", "post"], "params": {}},
+    "mobile_ai_tenancy_action": {"methods": ["post"], "params": {"p_action": {"format": "jsonb", "required": true}}},
+    "mobile_application_json": {"methods": ["get", "post"], "params": {"p_application_id": {"format": "uuid", "type": "string", "required": true}, "p_viewer_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_application_status_to_app": {"methods": ["get", "post"], "params": {"p_status": {"format": "text", "type": "string", "required": true}}},
+    "mobile_approve_conversation": {"methods": ["post"], "params": {"p_conversation_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_assign_repair": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_provider_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_assistant_notify": {"methods": ["post"], "params": {"p_body": {"format": "text", "type": "string", "required": true}, "p_link": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_user": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_assistant_owner": {"methods": ["get", "post"], "params": {}},
+    "mobile_can_view_applicant_files": {"methods": ["get", "post"], "params": {"p_applicant_folder": {"format": "text", "type": "string", "required": true}}},
+    "mobile_can_view_repair_photo": {"methods": ["get", "post"], "params": {"p_name": {"format": "text", "type": "string", "required": true}}},
+    "mobile_can_view_review_photo": {"methods": ["get", "post"], "params": {"p_name": {"format": "text", "type": "string", "required": true}}},
+    "mobile_cancel_inspection_request": {"methods": ["post"], "params": {"p_request_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_cancel_inspection_slot": {"methods": ["post"], "params": {"p_slot_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_complete_repair": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": true}}},
+    "mobile_confirm_repair": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_rating": {"format": "int32", "type": "integer", "required": true}}},
+    "mobile_contact_support": {"methods": ["post"], "params": {"p_contact_email": {"format": "text", "type": "string", "required": false}, "p_contact_name": {"format": "text", "type": "string", "required": false}, "p_message": {"format": "text", "type": "string", "required": true}, "p_subject": {"format": "text", "type": "string", "required": true}}},
+    "mobile_conversation_check_access": {"methods": ["get", "post"], "params": {"p_conversation_id": {"format": "uuid", "type": "string", "required": true}, "p_user": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_conversation_json": {"methods": ["get", "post"], "params": {"p_conversation_id": {"format": "uuid", "type": "string", "required": true}, "p_viewer": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_conversation_messages": {"methods": ["get", "post"], "params": {"p_conversation_id": {"format": "uuid", "type": "string", "required": true}, "p_limit": {"format": "int32", "type": "integer", "required": false}}},
+    "mobile_create_inspection": {"methods": ["post"], "params": {"p_attendee_id": {"format": "uuid", "type": "string", "required": false}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_notes": {"format": "text", "type": "string", "required": false}, "p_scheduled_at": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_type": {"format": "text", "type": "string", "required": true}}},
+    "mobile_create_inspection_slots": {"methods": ["post"], "params": {"p_end": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_slot_minutes": {"format": "int32", "type": "integer", "required": true}, "p_start": {"format": "timestamp with time zone", "type": "string", "required": true}}},
+    "mobile_create_property": {"methods": ["post"], "params": {"p_property": {"format": "jsonb", "required": true}}},
+    "mobile_create_provider_service": {"methods": ["post"], "params": {"p_service": {"format": "jsonb", "required": true}}},
+    "mobile_create_rent_agreement_draft": {"methods": ["post"], "params": {"p_application_id": {"format": "uuid", "type": "string", "required": true}, "p_end_date": {"format": "date", "type": "string", "required": false}, "p_first_due_date": {"format": "date", "type": "string", "required": true}, "p_rent_amount": {"format": "numeric", "type": "number", "required": true}, "p_rent_frequency": {"format": "text", "type": "string", "required": true}, "p_start_date": {"format": "date", "type": "string", "required": true}}},
+    "mobile_create_repair": {"methods": ["post"], "params": {"p_category": {"format": "text", "type": "string", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_issue_title": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_photos": {"format": "text[]", "type": "array", "required": false}, "p_priority": {"format": "text", "type": "string", "required": true}}},
+    "mobile_decide_inspection_request": {"methods": ["post"], "params": {"p_approve": {"format": "boolean", "type": "boolean", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}, "p_request_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_delete_property": {"methods": ["post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_delete_provider_service": {"methods": ["post"], "params": {"p_service_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_discover_profiles": {"methods": ["get", "post"], "params": {"p_role": {"format": "text", "type": "string", "required": false}}},
+    "mobile_get_conversation": {"methods": ["get", "post"], "params": {"p_conversation_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_get_listing": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_housing_red_flag_referrals": {"methods": ["get", "post"], "params": {}},
+    "mobile_housing_update_referral": {"methods": ["post"], "params": {"p_action": {"format": "text", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}, "p_referral_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_applicants": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_assert_owner_listing": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_assert_tenant_listing": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_book": {"methods": ["post"], "params": {"p_note": {"format": "text", "type": "string", "required": false}, "p_slot_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_booking_json": {"methods": ["get", "post"], "params": {"b": {"format": "public.mobile_inspection_bookings", "type": "string", "required": true}}},
+    "mobile_inspection_cancel_slot": {"methods": ["post"], "params": {"p_slot_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_create_slots": {"methods": ["post"], "params": {"p_duration_minutes": {"format": "int32", "type": "integer", "required": false}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_starts": {"format": "timestamp with time zone[]", "type": "array", "required": true}}},
+    "mobile_inspection_decide": {"methods": ["post"], "params": {"p_booking_id": {"format": "uuid", "type": "string", "required": true}, "p_decision": {"format": "text", "type": "string", "required": true}}},
+    "mobile_inspection_json": {"methods": ["get", "post"], "params": {"p_inspection_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_my_bookings": {"methods": ["get", "post"], "params": {}},
+    "mobile_inspection_notify": {"methods": ["post"], "params": {"p_body": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_user": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_open_slots": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_owner_list": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": false}}},
+    "mobile_inspection_request_json": {"methods": ["get", "post"], "params": {"p_request_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_inspection_slot_json": {"methods": ["get", "post"], "params": {"s": {"format": "public.mobile_inspection_slots", "type": "string", "required": true}}},
+    "mobile_inspection_tenant_homes": {"methods": ["get", "post"], "params": {}},
+    "mobile_inspection_when": {"methods": ["get", "post"], "params": {"p_at": {"format": "timestamp with time zone", "type": "string", "required": true}}},
+    "mobile_listing_inspection_slots": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_listing_json": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_viewer_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_listing_status_from_app": {"methods": ["get", "post"], "params": {"p_status": {"format": "text", "type": "string", "required": true}}},
+    "mobile_listing_status_to_app": {"methods": ["get", "post"], "params": {"p_status": {"format": "text", "type": "string", "required": true}}},
+    "mobile_mark_conversation_read": {"methods": ["post"], "params": {"p_conversation_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_message_json": {"methods": ["get", "post"], "params": {"p_message_id": {"format": "uuid", "type": "string", "required": true}, "p_viewer": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_my_applications": {"methods": ["get", "post"], "params": {}},
+    "mobile_my_conversations": {"methods": ["get", "post"], "params": {}},
+    "mobile_my_favorite_listings": {"methods": ["get", "post"], "params": {}},
+    "mobile_my_inspection_requests": {"methods": ["get", "post"], "params": {}},
+    "mobile_my_properties": {"methods": ["get", "post"], "params": {}},
+    "mobile_my_rent_summary": {"methods": ["get", "post"], "params": {}},
+    "mobile_my_rental_history": {"methods": ["get", "post"], "params": {}},
+    "mobile_my_repair_properties": {"methods": ["get", "post"], "params": {}},
+    "mobile_network": {"methods": ["get", "post"], "params": {}},
+    "mobile_notify_matches": {"methods": ["post"], "params": {"p_matches": {"format": "jsonb", "required": true}}},
+    "mobile_notify_self": {"methods": ["post"], "params": {"p_body": {"format": "text", "type": "string", "required": false}, "p_link": {"format": "text", "type": "string", "required": false}, "p_title": {"format": "text", "type": "string", "required": true}}},
+    "mobile_owner_activate_rent_agreement": {"methods": ["post"], "params": {"p_agreement_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_owner_applications": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_assistant_action": {"methods": ["post"], "params": {"p_confirmed": {"format": "boolean", "type": "boolean", "required": false}, "p_operation": {"format": "text", "type": "string", "required": true}, "p_payload": {"format": "jsonb", "required": true}, "p_request": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_owner_assistant_context": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_assistant_finish": {"methods": ["post"], "params": {"p_question": {"format": "text", "type": "string", "required": true}, "p_request": {"format": "uuid", "type": "string", "required": true}, "p_result": {"format": "jsonb", "required": true}}},
+    "mobile_owner_assistant_history": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_assistant_receipt": {"methods": ["post"], "params": {"p_action_request": {"format": "uuid", "type": "string", "required": true}, "p_chat_request": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_owner_assistant_reserve": {"methods": ["post"], "params": {"p_request": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_owner_assistant_save_turn": {"methods": ["post"], "params": {"p_question": {"format": "text", "type": "string", "required": true}, "p_reply": {"format": "text", "type": "string", "required": true}}},
+    "mobile_owner_assistant_workspace_read": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_create_repair": {"methods": ["post"], "params": {"p_category": {"format": "text", "type": "string", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_issue_title": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_photos": {"format": "text[]", "type": "array", "required": false}, "p_priority": {"format": "text", "type": "string", "required": true}}},
+    "mobile_owner_inspection_properties": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_inspection_requests": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_inspection_slots": {"methods": ["get", "post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_owner_inspections": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_provider_search": {"methods": ["get", "post"], "params": {"p_filters": {"format": "jsonb", "required": false}}},
+    "mobile_owner_repair_properties": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_repairs": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_review_summary": {"methods": ["get", "post"], "params": {}},
+    "mobile_owner_workspace": {"methods": ["get", "post"], "params": {}},
+    "mobile_owns_property": {"methods": ["get", "post"], "params": {"p_property_id": {"format": "text", "type": "string", "required": true}}},
+    "mobile_parse_date": {"methods": ["get", "post"], "params": {"p_text": {"format": "text", "type": "string", "required": true}}},
+    "mobile_participant_label": {"methods": ["get", "post"], "params": {"p_role": {"format": "text", "type": "string", "required": true}}},
+    "mobile_property_listing": {"methods": ["get", "post"], "params": {"p_property_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_property_reviews": {"methods": ["get", "post"], "params": {"p_property_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_property_type_from_app": {"methods": ["get", "post"], "params": {"p_type": {"format": "text", "type": "string", "required": true}}},
+    "mobile_provider_recommendations": {"methods": ["get", "post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": false}}},
+    "mobile_provider_repairs": {"methods": ["get", "post"], "params": {}},
+    "mobile_provider_service_json": {"methods": ["get", "post"], "params": {"p_service_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_provider_services": {"methods": ["get", "post"], "params": {"p_status": {"format": "text", "type": "string", "required": false}}},
+    "mobile_public_profile": {"methods": ["get", "post"], "params": {"p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_public_profile_json": {"methods": ["get", "post"], "params": {"p_user_id": {"format": "uuid", "type": "string", "required": true}, "p_viewer": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_rate_repair": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_rating": {"format": "int32", "type": "integer", "required": true}}},
+    "mobile_register_tenant_lease_document": {"methods": ["post"], "params": {"p_agreement_id": {"format": "uuid", "type": "string", "required": true}, "p_original_filename": {"format": "text", "type": "string", "required": true}, "p_storage_path": {"format": "text", "type": "string", "required": true}}},
+    "mobile_repair_category_label": {"methods": ["get", "post"], "params": {"p_category": {"format": "text", "type": "string", "required": true}}},
+    "mobile_repair_check_access": {"methods": ["get", "post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_user": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_repair_clean_photos": {"methods": ["get", "post"], "params": {"p_owner": {"format": "uuid", "type": "string", "required": true}, "p_photos": {"format": "text[]", "type": "array", "required": true}}},
+    "mobile_repair_event": {"methods": ["post"], "params": {"p_actor": {"format": "uuid", "type": "string", "required": true}, "p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_event": {"format": "text", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}}},
+    "mobile_repair_insert": {"methods": ["post"], "params": {"p_actor": {"format": "uuid", "type": "string", "required": true}, "p_actor_role": {"format": "text", "type": "string", "required": true}, "p_category": {"format": "text", "type": "string", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_issue_title": {"format": "text", "type": "string", "required": true}, "p_landlord_id": {"format": "uuid", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_photos": {"format": "text[]", "type": "array", "required": true}, "p_priority": {"format": "text", "type": "string", "required": true}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_tenant_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_repair_json": {"methods": ["get", "post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_viewer_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_repair_priority_to_app": {"methods": ["get", "post"], "params": {"p_severity": {"format": "text", "type": "string", "required": true}}},
+    "mobile_repair_providers": {"methods": ["get", "post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_repair_status_to_app": {"methods": ["get", "post"], "params": {"p_status": {"format": "text", "type": "string", "required": true}}},
+    "mobile_report_review": {"methods": ["post"], "params": {"p_details": {"format": "text", "type": "string", "required": false}, "p_reason": {"format": "text", "type": "string", "required": true}, "p_review_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_request_inspection_slot": {"methods": ["post"], "params": {"p_note": {"format": "text", "type": "string", "required": false}, "p_slot_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_require_admin": {"methods": ["get", "post"], "params": {}},
+    "mobile_require_housing_officer": {"methods": ["get", "post"], "params": {}},
+    "mobile_resolve_repair": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}}},
+    "mobile_respond_connection_request": {"methods": ["post"], "params": {"p_accept": {"format": "boolean", "type": "boolean", "required": true}, "p_request_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_review_application": {"methods": ["post"], "params": {"p_application_id": {"format": "uuid", "type": "string", "required": true}, "p_decision": {"format": "text", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}}},
+    "mobile_review_json": {"methods": ["get", "post"], "params": {"p_review_id": {"format": "uuid", "type": "string", "required": true}, "p_viewer": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_reviewable_homes": {"methods": ["get", "post"], "params": {}},
+    "mobile_role_from_app": {"methods": ["get", "post"], "params": {"p_role": {"format": "text", "type": "string", "required": true}}},
+    "mobile_role_to_app": {"methods": ["get", "post"], "params": {"p_role": {"format": "text", "type": "string", "required": true}}},
+    "mobile_schedule_repair": {"methods": ["post"], "params": {"p_appointment_at": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_duration_minutes": {"format": "int32", "type": "integer", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}}},
+    "mobile_search_listings": {"methods": ["get", "post"], "params": {"p_limit": {"format": "int32", "type": "integer", "required": false}, "p_location": {"format": "text", "type": "string", "required": false}, "p_max_price": {"format": "numeric", "type": "number", "required": false}, "p_min_bedrooms": {"format": "int32", "type": "integer", "required": false}, "p_min_price": {"format": "numeric", "type": "number", "required": false}, "p_offset": {"format": "int32", "type": "integer", "required": false}, "p_property_type": {"format": "text", "type": "string", "required": false}, "p_query": {"format": "text", "type": "string", "required": false}}},
+    "mobile_send_connection_request": {"methods": ["post"], "params": {"p_peer_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_send_message": {"methods": ["post"], "params": {"p_content": {"format": "text", "type": "string", "required": true}, "p_conversation_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_service_clean_list": {"methods": ["get", "post"], "params": {"p_list": {"format": "jsonb", "required": true}}},
+    "mobile_service_provider_id": {"methods": ["get", "post"], "params": {}},
+    "mobile_service_validate": {"methods": ["get", "post"], "params": {"p_description": {"format": "text", "type": "string", "required": true}, "p_price": {"format": "numeric", "type": "number", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}}},
+    "mobile_set_avatar": {"methods": ["post"], "params": {"p_avatar_url": {"format": "text", "type": "string", "required": true}}},
+    "mobile_set_favorite": {"methods": ["post"], "params": {"p_favorite": {"format": "boolean", "type": "boolean", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_set_inspection_status": {"methods": ["post"], "params": {"p_inspection_id": {"format": "uuid", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": false}, "p_status": {"format": "text", "type": "string", "required": true}}},
+    "mobile_start_conversation": {"methods": ["post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": false}, "p_peer_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_submit_application": {"methods": ["post"], "params": {"p_details": {"format": "jsonb", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_message": {"format": "text", "type": "string", "required": true}, "p_offer_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "mobile_submit_review": {"methods": ["post"], "params": {"p_body": {"format": "text", "type": "string", "required": true}, "p_details": {"format": "jsonb", "required": false}, "p_photos": {"format": "text[]", "type": "array", "required": false}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_ratings": {"format": "jsonb", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}}},
+    "mobile_sync_account": {"methods": ["post"], "params": {"p_full_name": {"format": "text", "type": "string", "required": false}, "p_phone": {"format": "text", "type": "string", "required": false}, "p_role": {"format": "text", "type": "string", "required": false}}},
+    "mobile_tenant_confirm_rent_agreement": {"methods": ["post"], "params": {"p_agreement_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_tenant_repairs": {"methods": ["get", "post"], "params": {}},
+    "mobile_unread_message_count": {"methods": ["get", "post"], "params": {}},
+    "mobile_update_app_data": {"methods": ["post"], "params": {"p_patch": {"format": "jsonb", "required": true}}},
+    "mobile_update_inspection": {"methods": ["post"], "params": {"p_attendee_id": {"format": "uuid", "type": "string", "required": false}, "p_inspection_id": {"format": "uuid", "type": "string", "required": true}, "p_notes": {"format": "text", "type": "string", "required": false}, "p_scheduled_at": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_type": {"format": "text", "type": "string", "required": true}}},
+    "mobile_update_property": {"methods": ["post"], "params": {"p_changes": {"format": "jsonb", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_update_provider_service": {"methods": ["post"], "params": {"p_changes": {"format": "jsonb", "required": true}, "p_service_id": {"format": "uuid", "type": "string", "required": true}}},
+    "mobile_withdraw_application": {"methods": ["post"], "params": {"p_application_id": {"format": "uuid", "type": "string", "required": true}}},
+    "owner_ai_assert": {"methods": ["post"], "params": {"p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_ai_context": {"methods": ["post"], "params": {"p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_ai_fail": {"methods": ["post"], "params": {"p_lease": {"format": "uuid", "type": "string", "required": true}, "p_request": {"format": "uuid", "type": "string", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_ai_finish": {"methods": ["post"], "params": {"p_lease": {"format": "uuid", "type": "string", "required": true}, "p_reply": {"format": "text", "type": "string", "required": true}, "p_request": {"format": "uuid", "type": "string", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_ai_reserve": {"methods": ["post"], "params": {"p_question": {"format": "text", "type": "string", "required": true}, "p_request": {"format": "uuid", "type": "string", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_assistant_deliver_reminders": {"methods": ["post"], "params": {}},
+    "owner_bridge_action": {"methods": ["post"], "params": {"p_task": {"format": "jsonb", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_bridge_inbox_read": {"methods": ["post"], "params": {"p_read": {"format": "text", "type": "string", "required": false}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_bridge_integration_ack": {"methods": ["post"], "params": {"p_job": {"format": "text", "type": "string", "required": true}, "p_provider": {"format": "text", "type": "string", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}, "p_url": {"format": "text", "type": "string", "required": true}}},
+    "owner_bridge_integration_event": {"methods": ["post"], "params": {"p_event": {"format": "jsonb", "required": true}}},
+    "owner_bridge_integration_job": {"methods": ["post"], "params": {"p_request": {"format": "text", "type": "string", "required": true}, "p_spec": {"format": "jsonb", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_bridge_snapshot": {"methods": ["post"], "params": {"p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_bridge_task_finish": {"methods": ["post"], "params": {"p_request": {"format": "text", "type": "string", "required": true}, "p_result": {"format": "jsonb", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_bridge_task_reserve": {"methods": ["post"], "params": {"p_task": {"format": "jsonb", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "owner_lease_sign_complete": {"methods": ["post"], "params": {"p_job": {"format": "uuid", "type": "string", "required": true}, "p_path": {"format": "text", "type": "string", "required": true}, "p_sha256": {"format": "text", "type": "string", "required": true}}},
+    "owner_lease_sign_reserve": {"methods": ["post"], "params": {"p_job": {"format": "uuid", "type": "string", "required": true}, "p_uid": {"format": "text", "type": "string", "required": true}}},
+    "rate_completed_maintenance_work_order": {"methods": ["post"], "params": {"p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_rating": {"format": "int32", "type": "integer", "required": true}, "p_tenant_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "rent_agreement_has_matching_signatures": {"methods": ["get", "post"], "params": {"p_agreement_id": {"format": "uuid", "type": "string", "required": true}}},
+    "replace_profile_document": {"methods": ["post"], "params": {"p_document_type": {"format": "text", "type": "string", "required": true}, "p_file_url": {"format": "text", "type": "string", "required": true}, "p_is_required": {"format": "boolean", "type": "boolean", "required": true}, "p_metadata": {"format": "jsonb", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_points_value": {"format": "int32", "type": "integer", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "reply_to_listing_review": {"methods": ["post"], "params": {"p_landlord_id": {"format": "uuid", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_reply": {"format": "text", "type": "string", "required": true}, "p_review_id": {"format": "uuid", "type": "string", "required": true}}},
+    "review_general_complaint": {"methods": ["post"], "params": {"p_admin_user_id": {"format": "uuid", "type": "string", "required": true}, "p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}}},
+    "review_profile_document": {"methods": ["post"], "params": {"p_document_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_rejection_reason": {"format": "text", "type": "string", "required": true}, "p_reviewer_id": {"format": "uuid", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}}},
+    "review_rental_application": {"methods": ["post"], "params": {"p_application_id": {"format": "uuid", "type": "string", "required": true}, "p_landlord_id": {"format": "uuid", "type": "string", "required": true}, "p_note": {"format": "text", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}}},
+    "review_user_verification": {"methods": ["post"], "params": {"p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_rejection_reason": {"format": "text", "type": "string", "required": true}, "p_reviewer_id": {"format": "uuid", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "rls_auto_enable": {"methods": ["post"], "params": {}},
+    "save_listing_review": {"methods": ["post"], "params": {"p_body": {"format": "text", "type": "string", "required": true}, "p_landlord_id": {"format": "uuid", "type": "string", "required": true}, "p_landlord_rating": {"format": "int32", "type": "integer", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_property_id": {"format": "uuid", "type": "string", "required": true}, "p_rating": {"format": "int32", "type": "integer", "required": true}, "p_reviewer_id": {"format": "uuid", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}}},
+    "search_listing_catalog": {"methods": ["get", "post"], "params": {"p_limit": {"format": "int32", "type": "integer", "required": false}, "p_location": {"format": "text", "type": "string", "required": false}, "p_max_price": {"format": "numeric", "type": "number", "required": false}, "p_min_bedrooms": {"format": "int32", "type": "integer", "required": false}, "p_min_price": {"format": "numeric", "type": "number", "required": false}, "p_offset": {"format": "int32", "type": "integer", "required": false}, "p_property_type": {"format": "text", "type": "string", "required": false}, "p_query": {"format": "text", "type": "string", "required": false}, "p_viewer_user_id": {"format": "uuid", "type": "string", "required": false}}},
+    "send_conversation_message": {"methods": ["post"], "params": {"p_content": {"format": "text", "type": "string", "required": true}, "p_conversation_id": {"format": "uuid", "type": "string", "required": true}, "p_message_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_sender_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "set_listing_favorite": {"methods": ["post"], "params": {"p_favorite": {"format": "boolean", "type": "boolean", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "set_maintenance_worker_status": {"methods": ["post"], "params": {"p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_reviewer_id": {"format": "uuid", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "set_property_image_cover": {"methods": ["post"], "params": {"p_media_id": {"format": "uuid", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}}},
+    "show_limit": {"methods": ["get", "post"], "params": {}},
+    "show_trgm": {"methods": ["get", "post"], "params": {"": {"format": "text", "type": "string", "required": true}}},
+    "submit_rental_application": {"methods": ["post"], "params": {"p_applicant_id": {"format": "uuid", "type": "string", "required": true}, "p_application_id": {"format": "uuid", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_message": {"format": "text", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_offer_weekly_rent": {"format": "numeric", "type": "number", "required": true}, "p_role": {"format": "text", "type": "string", "required": true}}},
+    "transition_listing_status": {"methods": ["post"], "params": {"p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}}},
+    "update_maintenance_work_order": {"methods": ["post"], "params": {"p_action": {"format": "text", "type": "string", "required": true}, "p_actor_user_id": {"format": "uuid", "type": "string", "required": true}, "p_complaint_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_updates": {"format": "jsonb", "required": true}}},
+    "update_own_profile": {"methods": ["post"], "params": {"p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_profile_kind": {"format": "text", "type": "string", "required": true}, "p_profile_update": {"format": "jsonb", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}, "p_user_update": {"format": "jsonb", "required": true}}},
+    "update_property_listing": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "update_property_listing_v2": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_property_type": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "update_property_listing_v3": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_property_type": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "update_property_listing_v4": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_pet_friendly": {"format": "boolean", "type": "boolean", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_property_type": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "update_property_listing_v5": {"methods": ["post"], "params": {"p_address_line_1": {"format": "text", "type": "string", "required": true}, "p_available_from": {"format": "date", "type": "string", "required": true}, "p_bathrooms": {"format": "int32", "type": "integer", "required": true}, "p_bedrooms": {"format": "int32", "type": "integer", "required": true}, "p_description": {"format": "text", "type": "string", "required": true}, "p_lease_term_months": {"format": "int32", "type": "integer", "required": true}, "p_listing_id": {"format": "uuid", "type": "string", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_owner_user_id": {"format": "uuid", "type": "string", "required": true}, "p_parking_spaces": {"format": "int32", "type": "integer", "required": true}, "p_pet_friendly": {"format": "boolean", "type": "boolean", "required": true}, "p_postcode": {"format": "text", "type": "string", "required": true}, "p_property_type": {"format": "text", "type": "string", "required": true}, "p_state": {"format": "text", "type": "string", "required": true}, "p_status": {"format": "text", "type": "string", "required": true}, "p_suburb": {"format": "text", "type": "string", "required": true}, "p_title": {"format": "text", "type": "string", "required": true}, "p_weekly_rent": {"format": "numeric", "type": "number", "required": true}}},
+    "upsert_profile_document": {"methods": ["post"], "params": {"p_document_type": {"format": "text", "type": "string", "required": true}, "p_file_url": {"format": "text", "type": "string", "required": true}, "p_is_required": {"format": "boolean", "type": "boolean", "required": true}, "p_metadata": {"format": "jsonb", "required": true}, "p_now": {"format": "timestamp with time zone", "type": "string", "required": true}, "p_points_value": {"format": "int32", "type": "integer", "required": true}, "p_user_id": {"format": "uuid", "type": "string", "required": true}}}
+  }
+}

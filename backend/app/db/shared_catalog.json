@@ -1,0 +1,933 @@
+{
+  "generated_by": "scripts/import_shared_catalog.py",
+  "source": {"file": "catalog-2026-10-23.csv", "sha256": "3c8c717c52a6d738eb4df19958e303ab253a5f2e2ea025b17eea6da311a4e2cb"},
+  "schema": "public",
+  "tables": {
+    "_prisma_migrations": {
+      "primary_key": {"name": "_prisma_migrations_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [],
+      "triggers": []
+    },
+    "agent_profiles": {
+      "primary_key": {"name": "agent_profiles_pkey", "columns": ["user_id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "agent_profiles_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "api_rate_limits": {
+      "primary_key": {"name": "api_rate_limits_pkey", "columns": ["key_hash", "window_started_at"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [],
+      "triggers": []
+    },
+    "application_documents": {
+      "primary_key": {"name": "application_documents_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "application_documents_application_id_fkey", "columns": ["application_id"], "references": {"schema": "public", "table": "rental_applications", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"},
+        {"name": "application_documents_verified_by_user_id_fkey", "columns": ["verified_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "application_status_events": {
+      "primary_key": {"name": "application_status_events_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "application_status_events_application_id_fkey", "columns": ["application_id"], "references": {"schema": "public", "table": "rental_applications", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"},
+        {"name": "application_status_events_changed_by_user_id_fkey", "columns": ["changed_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "complaint_events": {
+      "primary_key": {"name": "complaint_events_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "complaint_events_actor_user_id_fkey", "columns": ["actor_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "complaint_events_complaint_id_fkey", "columns": ["complaint_id"], "references": {"schema": "public", "table": "complaints", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "complaints": {
+      "primary_key": {"name": "complaints_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "complaints_against_user_id_fkey", "columns": ["against_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "complaints_property_id_fkey", "columns": ["property_id"], "references": {"schema": "public", "table": "properties", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "complaints_reporter_user_id_fkey", "columns": ["reporter_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": [
+        {"name": "evaluate_complaint_red_flags_after_insert", "timing": "after", "events": ["insert"], "level": "row", "function": "evaluate_complaint_red_flags"}
+      ]
+    },
+    "connection_requests": {
+      "primary_key": {"name": "connection_requests_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "connection_requests_sender_user_id_receiver_user_id_context_key", "kind": "index", "keys": ["sender_user_id", "receiver_user_id", "context_type", "context_entity_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "connection_requests_receiver_user_id_fkey", "columns": ["receiver_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"},
+        {"name": "connection_requests_sender_user_id_fkey", "columns": ["sender_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "conversation_participants": {
+      "primary_key": {"name": "conversation_participants_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "conversation_participants_conversation_id_user_id_key", "kind": "index", "keys": ["conversation_id", "user_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "conversation_participants_conversation_id_fkey", "columns": ["conversation_id"], "references": {"schema": "public", "table": "conversations", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"},
+        {"name": "conversation_participants_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "conversations": {
+      "primary_key": {"name": "conversations_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "conversations_maintenance_complaint_key", "kind": "index", "keys": ["((metadata ->> 'maintenanceComplaintId'::text))"], "where": "((metadata ->> 'maintenanceComplaintId'::text) IS NOT NULL)"}
+      ],
+      "foreign_keys": [
+        {"name": "conversations_application_id_fkey", "columns": ["application_id"], "references": {"schema": "public", "table": "rental_applications", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "conversations_created_by_user_id_fkey", "columns": ["created_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "conversations_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"}
+      ],
+      "triggers": [
+        {"name": "conversations_application_listing_match_guard", "timing": "before", "events": ["insert", "update"], "level": "row", "function": "enforce_conversation_application_listing_match", "update_of": ["application_id", "listing_id"]}
+      ]
+    },
+    "landlord_profiles": {
+      "primary_key": {"name": "landlord_profiles_pkey", "columns": ["user_id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "landlord_profiles_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "listing_favorites": {
+      "primary_key": {"name": "listing_favorites_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "listing_favorites_user_id_listing_id_key", "kind": "constraint", "keys": ["user_id", "listing_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "listing_favorites_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "listing_favorites_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "listings": {
+      "primary_key": {"name": "listings_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "listings_nonnegative_amounts_check", "expression": "((weekly_rent >= (0)::numeric) AND ((bond_amount IS NULL) OR (bond_amount >= (0)::numeric)))"},
+        {"name": "listings_positive_lease_term_check", "expression": "((lease_term_months IS NULL) OR (lease_term_months > 0))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "listings_created_by_user_id_fkey", "columns": ["created_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "cascade"},
+        {"name": "listings_property_id_fkey", "columns": ["property_id"], "references": {"schema": "public", "table": "properties", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": [
+        {"name": "listings_application_consistency_guard", "timing": "after", "events": ["insert", "update"], "level": "row", "function": "enforce_listing_application_consistency", "update_of": ["status"], "constraint": true, "deferrable": true, "initially_deferred": true},
+        {"name": "listings_creator_access_guard", "timing": "before", "events": ["insert", "update"], "level": "row", "function": "enforce_listing_creator_access", "update_of": ["property_id", "created_by_user_id"]},
+        {"name": "listings_status_transition_guard", "timing": "before", "events": ["update"], "level": "row", "function": "enforce_listing_status_transition", "update_of": ["status"]}
+      ]
+    },
+    "maintenance_work_orders": {
+      "primary_key": {"name": "maintenance_work_orders_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "maintenance_work_orders_duration_check", "expression": "((estimated_duration_minutes IS NULL) OR ((estimated_duration_minutes >= 15) AND (estimated_duration_minutes <= 1440)))"},
+        {"name": "maintenance_work_orders_rating_check", "expression": "((tenant_rating IS NULL) OR ((tenant_rating >= 1) AND (tenant_rating <= 5)))"},
+        {"name": "maintenance_work_orders_status_check", "expression": "(status = ANY (ARRAY['OPEN'::text, 'ASSIGNED'::text, 'SCHEDULED'::text, 'PENDING_TENANT_CONFIRMATION'::text, 'RESOLVED'::text]))"}
+      ],
+      "unique": [
+        {"name": "maintenance_work_orders_complaint_id_key", "kind": "index", "keys": ["complaint_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "maintenance_work_orders_assigned_worker_id_fkey", "columns": ["assigned_worker_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "maintenance_work_orders_complaint_id_fkey", "columns": ["complaint_id"], "references": {"schema": "public", "table": "complaints", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "maintenance_work_orders_conversation_id_fkey", "columns": ["conversation_id"], "references": {"schema": "public", "table": "conversations", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "maintenance_work_orders_landlord_user_id_fkey", "columns": ["landlord_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "maintenance_work_orders_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "maintenance_work_orders_tenant_user_id_fkey", "columns": ["tenant_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "message_attachments": {
+      "primary_key": {"name": "message_attachments_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "message_attachments_message_id_fkey", "columns": ["message_id"], "references": {"schema": "public", "table": "messages", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "messages": {
+      "primary_key": {"name": "messages_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "messages_conversation_id_fkey", "columns": ["conversation_id"], "references": {"schema": "public", "table": "conversations", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"},
+        {"name": "messages_sender_user_id_fkey", "columns": ["sender_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "mobile_admin_alerts": {
+      "primary_key": {"name": "mobile_admin_alerts_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_admin_alerts_severity_check", "expression": "(severity = ANY (ARRAY['HIGH'::text, 'CRITICAL'::text]))"},
+        {"name": "mobile_admin_alerts_status_check", "expression": "(status = ANY (ARRAY['OPEN'::text, 'UNDER_REVIEW'::text, 'ESCALATED'::text, 'RESOLVED'::text]))"}
+      ],
+      "unique": [
+        {"name": "mobile_admin_alerts_complaint_id_key", "kind": "constraint", "keys": ["complaint_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "mobile_admin_alerts_category_id_fkey", "columns": ["category_id"], "references": {"schema": "public", "table": "mobile_admin_issue_categories", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "mobile_admin_alerts_complaint_id_fkey", "columns": ["complaint_id"], "references": {"schema": "public", "table": "complaints", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_admin_alerts_escalated_by_fkey", "columns": ["escalated_by"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_admin_audit_entries": {
+      "primary_key": {"name": "mobile_admin_audit_entries_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "mobile_admin_audit_entries_actor_user_id_fkey", "columns": ["actor_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_admin_issue_categories": {
+      "primary_key": {"name": "mobile_admin_issue_categories_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_admin_issue_categories_severity_check", "expression": "(severity = ANY (ARRAY['NORMAL'::text, 'HIGH'::text, 'URGENT'::text, 'CRITICAL'::text]))"},
+        {"name": "mobile_admin_issue_categories_sla_hours_check", "expression": "((sla_hours >= 1) AND (sla_hours <= 2160))"}
+      ],
+      "unique": [
+        {"name": "mobile_admin_issue_categories_code_key", "kind": "constraint", "keys": ["code"]}
+      ],
+      "foreign_keys": [
+        {"name": "mobile_admin_issue_categories_created_by_fkey", "columns": ["created_by"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "mobile_admin_issue_categories_updated_by_fkey", "columns": ["updated_by"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_admin_referral_packages": {
+      "primary_key": {"name": "mobile_admin_referral_packages_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_admin_referral_packages_status_check", "expression": "(status = ANY (ARRAY['REFERRED'::text, 'UNDER_REVIEW'::text, 'PACKAGE_READY'::text, 'CLOSED'::text]))"}
+      ],
+      "unique": [
+        {"name": "mobile_admin_referral_packages_alert_id_key", "kind": "constraint", "keys": ["alert_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "mobile_admin_referral_packages_alert_id_fkey", "columns": ["alert_id"], "references": {"schema": "public", "table": "mobile_admin_alerts", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_admin_referral_packages_complaint_id_fkey", "columns": ["complaint_id"], "references": {"schema": "public", "table": "complaints", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_admin_referral_packages_referred_by_fkey", "columns": ["referred_by"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "mobile_admin_referral_packages_reviewed_by_fkey", "columns": ["reviewed_by"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_ai_chat_usage": {
+      "primary_key": {"name": "mobile_ai_chat_usage_pkey", "columns": ["user_id", "usage_date"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "mobile_ai_chat_usage_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_ai_operations": {
+      "primary_key": {"name": "mobile_ai_operations_pkey", "columns": ["owner_id", "request_id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "mobile_ai_operations_owner_id_fkey", "columns": ["owner_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_ai_service_jobs": {
+      "primary_key": {"name": "mobile_ai_service_jobs_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "mobile_ai_service_jobs_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "mobile_ai_service_jobs_owner_id_fkey", "columns": ["owner_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "mobile_ai_service_jobs_provider_id_fkey", "columns": ["provider_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_ai_tenancy_records": {
+      "primary_key": {"name": "mobile_ai_tenancy_records_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "mobile_ai_tenancy_records_application_id_fkey", "columns": ["application_id"], "references": {"schema": "public", "table": "rental_applications", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "mobile_ai_tenancy_records_owner_id_fkey", "columns": ["owner_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "mobile_ai_tenancy_records_tenant_id_fkey", "columns": ["tenant_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_inspection_bookings": {
+      "primary_key": {"name": "mobile_inspection_bookings_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_inspection_bookings_status_check", "expression": "(status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text, 'reschedule_requested'::text, 'cancelled'::text]))"}
+      ],
+      "unique": [
+        {"name": "mobile_inspection_bookings_active_slot_idx", "kind": "index", "keys": ["slot_id"], "where": "(status = ANY (ARRAY['pending'::text, 'accepted'::text, 'reschedule_requested'::text]))"}
+      ],
+      "foreign_keys": [
+        {"name": "mobile_inspection_bookings_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_inspection_bookings_owner_id_fkey", "columns": ["owner_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "mobile_inspection_bookings_slot_id_fkey", "columns": ["slot_id"], "references": {"schema": "public", "table": "mobile_inspection_slots", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_inspection_bookings_tenant_id_fkey", "columns": ["tenant_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_inspection_requests": {
+      "primary_key": {"name": "mobile_inspection_requests_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_inspection_requests_status_check", "expression": "(status = ANY (ARRAY['Pending'::text, 'Approved'::text, 'Declined'::text, 'Cancelled'::text]))"}
+      ],
+      "unique": [
+        {"name": "mobile_inspection_requests_one_live_per_slot", "kind": "index", "keys": ["slot_id"], "where": "(status = ANY (ARRAY['Pending'::text, 'Approved'::text]))"}
+      ],
+      "foreign_keys": [
+        {"name": "mobile_inspection_requests_inspection_id_fkey", "columns": ["inspection_id"], "references": {"schema": "public", "table": "mobile_inspections", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "mobile_inspection_requests_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_inspection_requests_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_inspection_requests_tenant_user_id_fkey", "columns": ["tenant_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_inspection_slots": {
+      "primary_key": {"name": "mobile_inspection_slots_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_inspection_slots_duration_minutes_check", "expression": "((duration_minutes >= 15) AND (duration_minutes <= 240))"},
+        {"name": "mobile_inspection_slots_status_check", "expression": "(status = ANY (ARRAY['open'::text, 'held'::text, 'booked'::text, 'cancelled'::text]))"}
+      ],
+      "unique": [
+        {"name": "mobile_inspection_slots_listing_start_active_idx", "kind": "index", "keys": ["listing_id", "starts_at"], "where": "(status = ANY (ARRAY['open'::text, 'held'::text, 'booked'::text]))"}
+      ],
+      "foreign_keys": [
+        {"name": "mobile_inspection_slots_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_inspection_slots_owner_id_fkey", "columns": ["owner_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_inspections": {
+      "primary_key": {"name": "mobile_inspections_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_inspections_inspection_type_check", "expression": "(inspection_type = ANY (ARRAY['Open home'::text, 'Private viewing'::text, 'Routine inspection'::text, 'Entry condition'::text, 'Exit condition'::text]))"},
+        {"name": "mobile_inspections_status_check", "expression": "(status = ANY (ARRAY['Scheduled'::text, 'Completed'::text, 'Cancelled'::text]))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "mobile_inspections_attendee_user_id_fkey", "columns": ["attendee_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "mobile_inspections_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"},
+        {"name": "mobile_inspections_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "mobile_provider_services": {
+      "primary_key": {"name": "mobile_provider_services_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "mobile_provider_services_category_check", "expression": "(category = ANY (ARRAY['PLUMBING'::text, 'ELECTRICAL'::text, 'HVAC'::text, 'APPLIANCE'::text, 'LOCKS_SECURITY'::text, 'LEAK'::text, 'SAFETY'::text, 'GENERAL'::text]))"},
+        {"name": "mobile_provider_services_price_check", "expression": "(price >= (0)::numeric)"},
+        {"name": "mobile_provider_services_pricing_type_check", "expression": "(pricing_type = ANY (ARRAY['flat'::text, 'hourly'::text, 'from'::text]))"},
+        {"name": "mobile_provider_services_status_check", "expression": "(status = ANY (ARRAY['active'::text, 'draft'::text, 'archived'::text]))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "mobile_provider_services_provider_user_id_fkey", "columns": ["provider_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "notifications": {
+      "primary_key": {"name": "notifications_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "rent_payment_notification_once_idx", "kind": "index", "keys": ["user_id", "link"], "where": "(link ~~ '/payments/verified/%'::text)"},
+        {"name": "tenant_lease_ready_notification_once_idx", "kind": "index", "keys": ["user_id", "link"], "where": "(link ~~ '/documents/lease-ready/%'::text)"},
+        {"name": "tenant_lease_signed_notification_once_idx", "kind": "index", "keys": ["user_id", "link"], "where": "(link ~~ '/applications/lease-signed/%'::text)"},
+        {"name": "tenant_rent_activation_notification_once_idx", "kind": "index", "keys": ["user_id", "link"], "where": "(link ~~ '/agreements/activated/%'::text)"}
+      ],
+      "foreign_keys": [
+        {"name": "notifications_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "owner_ai_accounts": {
+      "primary_key": {"name": "owner_ai_accounts_pkey", "columns": ["firebase_uid"]},
+      "checks": [
+        {"name": "owner_ai_accounts_firebase_uid_check", "expression": "((length(firebase_uid) >= 1) AND (length(firebase_uid) <= 128))"}
+      ],
+      "unique": [
+        {"name": "owner_ai_accounts_user_id_key", "kind": "constraint", "keys": ["user_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "owner_ai_accounts_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_ai_turns": {
+      "primary_key": {"name": "owner_ai_turns_pkey", "columns": ["firebase_uid", "request_id"]},
+      "checks": [
+        {"name": "owner_ai_turns_question_check", "expression": "((length(question) >= 1) AND (length(question) <= 4000))"},
+        {"name": "owner_ai_turns_reply_check", "expression": "(length(reply) <= 16000)"},
+        {"name": "owner_ai_turns_status_check", "expression": "(status = ANY (ARRAY['pending'::text, 'complete'::text, 'failed'::text]))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_ai_turns_firebase_uid_fkey", "columns": ["firebase_uid"], "references": {"schema": "public", "table": "owner_ai_accounts", "columns": ["firebase_uid"]}, "on_delete": "cascade", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_assistant_file_grants": {
+      "primary_key": {"name": "owner_assistant_file_grants_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "owner_assistant_file_grants_path_key", "kind": "constraint", "keys": ["path"]}
+      ],
+      "foreign_keys": [
+        {"name": "owner_assistant_file_grants_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_assistant_records": {
+      "primary_key": {"name": "owner_assistant_records_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "owner_assistant_records_kind_check", "expression": "(kind = ANY (ARRAY['lease'::text, 'inspection'::text, 'charge'::text, 'payment'::text, 'expense'::text, 'proposal'::text, 'reminder'::text, 'access_request'::text]))"},
+        {"name": "owner_assistant_records_title_check", "expression": "((length(title) >= 1) AND (length(title) <= 160))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_assistant_records_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "owner_assistant_records_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "owner_assistant_records_recipient_user_id_fkey", "columns": ["recipient_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_assistant_requests": {
+      "primary_key": {"name": "owner_assistant_requests_pkey", "columns": ["owner_user_id", "request_id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_assistant_requests_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_assistant_turns": {
+      "primary_key": {"name": "owner_assistant_turns_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "owner_assistant_turns_question_check", "expression": "(length(question) <= 4000)"},
+        {"name": "owner_assistant_turns_reply_check", "expression": "(length(reply) <= 16000)"}
+      ],
+      "unique": [
+        {"name": "owner_assistant_turns_request_idx", "kind": "index", "keys": ["owner_user_id", "chat_request_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "owner_assistant_turns_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_bridge_inbox": {
+      "primary_key": {"name": "owner_bridge_inbox_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_bridge_inbox_owner_uid_fkey", "columns": ["owner_uid"], "references": {"schema": "public", "table": "owner_ai_accounts", "columns": ["firebase_uid"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_bridge_integration_events": {
+      "primary_key": {"name": "owner_bridge_integration_events_pkey", "columns": ["event_id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_bridge_integration_events_job_id_fkey", "columns": ["job_id"], "references": {"schema": "public", "table": "owner_bridge_integrations", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_bridge_integrations": {
+      "primary_key": {"name": "owner_bridge_integrations_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_bridge_integrations_firebase_uid_fkey", "columns": ["firebase_uid"], "references": {"schema": "public", "table": "owner_ai_accounts", "columns": ["firebase_uid"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_bridge_records": {
+      "primary_key": {"name": "owner_bridge_records_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "owner_bridge_records_kind_check", "expression": "(kind = ANY (ARRAY['lease'::text, 'inspection'::text, 'charge'::text, 'payment'::text, 'expense'::text, 'proposal'::text, 'reminder'::text, 'service_request'::text]))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_bridge_records_firebase_uid_fkey", "columns": ["firebase_uid"], "references": {"schema": "public", "table": "owner_ai_accounts", "columns": ["firebase_uid"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "owner_lease_freeze_pending", "timing": "before", "events": ["delete", "update"], "level": "row", "function": "owner_lease_freeze_pending"}
+      ]
+    },
+    "owner_bridge_requests": {
+      "primary_key": {"name": "owner_bridge_requests_pkey", "columns": ["firebase_uid", "request_id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_bridge_requests_firebase_uid_fkey", "columns": ["firebase_uid"], "references": {"schema": "public", "table": "owner_ai_accounts", "columns": ["firebase_uid"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_lease_documents": {
+      "primary_key": {"name": "owner_lease_documents_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "owner_lease_documents_kind_check", "expression": "(kind = ANY (ARRAY['condition_report'::text, 'information_statement'::text, 'bylaws'::text, 'other'::text]))"},
+        {"name": "owner_lease_documents_sha256_check", "expression": "(sha256 ~ '^[a-f0-9]{64}$'::text)"},
+        {"name": "owner_lease_documents_size_bytes_check", "expression": "((size_bytes >= 1) AND (size_bytes <= 5242880))"},
+        {"name": "owner_lease_documents_state_check", "expression": "(state = ANY (ARRAY['ready'::text, 'removed'::text]))"}
+      ],
+      "unique": [
+        {"name": "owner_lease_documents_object_path_key", "kind": "constraint", "keys": ["object_path"]}
+      ],
+      "foreign_keys": [
+        {"name": "owner_lease_documents_firebase_uid_fkey", "columns": ["firebase_uid"], "references": {"schema": "public", "table": "owner_ai_accounts", "columns": ["firebase_uid"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "owner_lease_documents_record_id_fkey", "columns": ["record_id"], "references": {"schema": "public", "table": "owner_bridge_records", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "owner_lease_freeze_documents", "timing": "before", "events": ["insert", "delete", "update"], "level": "row", "function": "owner_lease_freeze_documents"}
+      ]
+    },
+    "owner_lease_signing_audit": {
+      "primary_key": {"name": "owner_lease_signing_audit_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "owner_lease_signing_audit_job_id_fkey", "columns": ["job_id"], "references": {"schema": "public", "table": "owner_lease_signing_jobs", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "owner_lease_signing_jobs": {
+      "primary_key": {"name": "owner_lease_signing_jobs_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "owner_lease_signing_jobs_state_check", "expression": "(state = ANY (ARRAY['prepared'::text, 'sending'::text, 'sent'::text, 'reconcile_required'::text, 'complete_pending_file'::text, 'complete'::text, 'test_complete'::text, 'declined'::text, 'cancelled'::text, 'failed'::text]))"}
+      ],
+      "unique": [
+        {"name": "owner_lease_one_open_signing", "kind": "index", "keys": ["record_id"], "where": "(state = ANY (ARRAY['prepared'::text, 'sending'::text, 'sent'::text, 'reconcile_required'::text, 'complete_pending_file'::text, 'complete'::text, 'test_complete'::text]))"},
+        {"name": "owner_lease_signing_jobs_provider_id_key", "kind": "constraint", "keys": ["provider_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "owner_lease_signing_jobs_firebase_uid_fkey", "columns": ["firebase_uid"], "references": {"schema": "public", "table": "owner_ai_accounts", "columns": ["firebase_uid"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "owner_lease_signing_jobs_record_id_fkey", "columns": ["record_id"], "references": {"schema": "public", "table": "owner_bridge_records", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "profile_document_deletion_queue": {
+      "primary_key": {"name": "profile_document_deletion_queue_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "profile_document_deletion_queue_attempts_check", "expression": "(attempts >= 0)"},
+        {"name": "profile_document_deletion_queue_reason_check", "expression": "(reason = ANY (ARRAY['REPLACED'::text, 'USER_DELETED'::text, 'ACCOUNT_RETENTION'::text, 'ORPHANED'::text]))"}
+      ],
+      "unique": [
+        {"name": "profile_document_deletion_queue_file_path_key", "kind": "constraint", "keys": ["file_path"]}
+      ],
+      "foreign_keys": [],
+      "triggers": []
+    },
+    "profile_document_review_events": {
+      "primary_key": {"name": "profile_document_review_events_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "profile_document_review_events_final_status_check", "expression": "(review_status = ANY (ARRAY['APPROVED'::\"ProfileDocumentReviewStatus\", 'REJECTED'::\"ProfileDocumentReviewStatus\"]))"},
+        {"name": "profile_document_review_events_rejection_reason_check", "expression": "((review_status <> 'REJECTED'::\"ProfileDocumentReviewStatus\") OR (NULLIF(TRIM(BOTH FROM COALESCE(rejection_reason, ''::text)), ''::text) IS NOT NULL))"}
+      ],
+      "unique": [
+        {"name": "profile_document_review_events_document_time_key", "kind": "constraint", "keys": ["document_id", "reviewed_at"]}
+      ],
+      "foreign_keys": [
+        {"name": "profile_document_review_events_document_id_fkey", "columns": ["document_id"], "references": {"schema": "public", "table": "profile_documents", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "profile_document_review_events_reviewer_user_id_fkey", "columns": ["reviewer_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "profile_document_review_events_subject_user_id_fkey", "columns": ["subject_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "profile_documents": {
+      "primary_key": {"name": "profile_documents_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "profile_documents_user_id_document_type_key", "kind": "index", "keys": ["user_id", "document_type"]}
+      ],
+      "foreign_keys": [
+        {"name": "profile_documents_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"},
+        {"name": "profile_documents_verified_by_user_id_fkey", "columns": ["verified_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "properties": {
+      "primary_key": {"name": "properties_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "properties_nonnegative_room_counts_check", "expression": "(((bedrooms IS NULL) OR (bedrooms >= 0)) AND ((bathrooms IS NULL) OR (bathrooms >= 0)) AND ((parking_spaces IS NULL) OR (parking_spaces >= 0)))"},
+        {"name": "properties_valid_coordinates_check", "expression": "(((latitude IS NULL) OR ((latitude >= ('-90'::integer)::numeric) AND (latitude <= (90)::numeric))) AND ((longitude IS NULL) OR ((longitude >= ('-180'::integer)::numeric) AND (longitude <= (180)::numeric))))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "properties_manager_user_id_fkey", "columns": ["manager_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "properties_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "property_media": {
+      "primary_key": {"name": "property_media_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "property_media_file_size_bytes_check", "expression": "((file_size_bytes IS NULL) OR ((file_size_bytes >= 1) AND (file_size_bytes <= 3145728)))"}
+      ],
+      "unique": [
+        {"name": "property_media_storage_object_idx", "kind": "index", "keys": ["storage_bucket", "storage_path"], "where": "((storage_bucket IS NOT NULL) AND (storage_path IS NOT NULL))"}
+      ],
+      "foreign_keys": [
+        {"name": "property_media_property_id_fkey", "columns": ["property_id"], "references": {"schema": "public", "table": "properties", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"},
+        {"name": "property_media_uploaded_by_user_id_fkey", "columns": ["uploaded_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "recommendations": {
+      "primary_key": {"name": "recommendations_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "recommendations_target_user_id_fkey", "columns": ["target_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "red_flag_events": {
+      "primary_key": {"name": "red_flag_events_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "red_flag_events_complaint_id_fkey", "columns": ["complaint_id"], "references": {"schema": "public", "table": "complaints", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "red_flag_events_property_id_fkey", "columns": ["property_id"], "references": {"schema": "public", "table": "properties", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "red_flag_events_rule_id_fkey", "columns": ["rule_id"], "references": {"schema": "public", "table": "red_flag_rules", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "red_flag_rules": {
+      "primary_key": {"name": "red_flag_rules_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "red_flag_rules_threshold_count_check", "expression": "((threshold_count >= 1) AND (threshold_count <= 10000))"},
+        {"name": "red_flag_rules_trigger_mode_check", "expression": "(trigger_mode = ANY (ARRAY['TOTAL'::text, 'WINDOW'::text]))"},
+        {"name": "red_flag_rules_window_days_check", "expression": "((window_days >= 1) AND (window_days <= 3650))"}
+      ],
+      "unique": [
+        {"name": "red_flag_rules_rule_key_key", "kind": "index", "keys": ["rule_key"]}
+      ],
+      "foreign_keys": [],
+      "triggers": []
+    },
+    "regulatory_red_flags": {
+      "primary_key": {"name": "regulatory_red_flags_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "regulatory_red_flags_severity_check", "expression": "(severity = ANY (ARRAY['critical'::text, 'high'::text, 'medium'::text]))"},
+        {"name": "regulatory_red_flags_status_check", "expression": "(status = ANY (ARRAY['New'::text, 'Under review'::text, 'Escalated'::text, 'Closed'::text]))"}
+      ],
+      "unique": [],
+      "foreign_keys": [],
+      "triggers": []
+    },
+    "regulatory_survey_questions": {
+      "primary_key": {"name": "regulatory_survey_questions_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "regulatory_survey_questions_survey_id_fkey", "columns": ["survey_id"], "references": {"schema": "public", "table": "regulatory_surveys", "columns": ["id"]}, "on_delete": "cascade", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "regulatory_surveys": {
+      "primary_key": {"name": "regulatory_surveys_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "regulatory_surveys_status_check", "expression": "(status = ANY (ARRAY['Draft'::text, 'Live'::text, 'Closed'::text]))"}
+      ],
+      "unique": [],
+      "foreign_keys": [],
+      "triggers": []
+    },
+    "rent_agreement_owner_signatures": {
+      "primary_key": {"name": "rent_agreement_owner_signatures_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "rent_agreement_owner_signatures_consent_text_check", "expression": "(char_length(TRIM(BOTH FROM consent_text)) >= 20)"},
+        {"name": "rent_agreement_owner_signatures_document_sha256_check", "expression": "(document_sha256 ~ '^[a-f0-9]{64}$'::text)"},
+        {"name": "rent_agreement_owner_signatures_signer_name_check", "expression": "((char_length(TRIM(BOTH FROM signer_name)) >= 2) AND (char_length(TRIM(BOTH FROM signer_name)) <= 160))"},
+        {"name": "rent_agreement_owner_signatures_signing_method_check", "expression": "(signing_method = 'TYPED_NAME'::text)"}
+      ],
+      "unique": [
+        {"name": "one_owner_signature_per_agreement", "kind": "constraint", "keys": ["agreement_id"]},
+        {"name": "rent_agreement_owner_signatures_tenant_signature_id_key", "kind": "constraint", "keys": ["tenant_signature_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "owner_signature_document_matches_agreement", "columns": ["document_id", "agreement_id"], "references": {"schema": "public", "table": "tenant_lease_documents", "columns": ["id", "agreement_id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "rent_agreement_owner_signatures_agreement_id_fkey", "columns": ["agreement_id"], "references": {"schema": "public", "table": "rent_agreements", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "rent_agreement_owner_signatures_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "rent_agreement_owner_signatures_tenant_signature_id_fkey", "columns": ["tenant_signature_id"], "references": {"schema": "public", "table": "tenant_lease_signatures", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "protect_rent_agreement_owner_signatures", "timing": "before", "events": ["insert", "delete", "update"], "level": "row", "function": "guard_rent_agreement_owner_signature"}
+      ]
+    },
+    "rent_agreements": {
+      "primary_key": {"name": "rent_agreements_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "rent_agreement_active_requires_activation", "expression": "((status <> 'ACTIVE'::text) OR (activated_at IS NOT NULL))"},
+        {"name": "rent_agreements_currency_check", "expression": "(currency = 'AUD'::text)"},
+        {"name": "rent_agreements_rent_amount_check", "expression": "(rent_amount > (0)::numeric)"},
+        {"name": "rent_agreements_rent_frequency_check", "expression": "(rent_frequency = ANY (ARRAY['WEEKLY'::text, 'FORTNIGHTLY'::text, 'MONTHLY'::text]))"},
+        {"name": "rent_agreements_status_check", "expression": "(status = ANY (ARRAY['DRAFT'::text, 'ACTIVE'::text, 'ENDED'::text, 'CANCELLED'::text]))"},
+        {"name": "valid_rent_agreement_dates", "expression": "((end_date IS NULL) OR (end_date >= start_date))"}
+      ],
+      "unique": [
+        {"name": "rent_agreements_application_id_key", "kind": "constraint", "keys": ["application_id"]},
+        {"name": "rent_agreements_one_active_listing_idx", "kind": "index", "keys": ["listing_id"], "where": "(status = 'ACTIVE'::text)"}
+      ],
+      "foreign_keys": [
+        {"name": "rent_agreements_application_id_fkey", "columns": ["application_id"], "references": {"schema": "public", "table": "rental_applications", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "rent_agreements_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "rent_agreements_owner_user_id_fkey", "columns": ["owner_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "rent_agreements_tenant_user_id_fkey", "columns": ["tenant_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "notify_tenant_after_rent_activation", "timing": "after", "events": ["update"], "level": "row", "function": "notify_tenant_rent_agreement_activated", "update_of": ["status"]},
+        {"name": "protect_signed_rent_agreement", "timing": "before", "events": ["delete", "update"], "level": "row", "function": "guard_signed_rent_agreement"},
+        {"name": "require_signatures_for_rent_activation", "timing": "before", "events": ["insert", "update"], "level": "row", "function": "guard_rent_agreement_activation"}
+      ]
+    },
+    "rent_charges": {
+      "primary_key": {"name": "rent_charges_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "rent_charges_amount_due_check", "expression": "(amount_due > (0)::numeric)"},
+        {"name": "rent_charges_status_check", "expression": "(status = ANY (ARRAY['DRAFT'::text, 'ISSUED'::text, 'VOID'::text]))"},
+        {"name": "valid_rent_period", "expression": "(period_end > period_start)"}
+      ],
+      "unique": [
+        {"name": "rent_charge_one_issued_per_due_date", "kind": "index", "keys": ["agreement_id", "due_date"], "where": "(status = 'ISSUED'::text)"},
+        {"name": "unique_rent_charge_period", "kind": "constraint", "keys": ["agreement_id", "period_start"]}
+      ],
+      "foreign_keys": [
+        {"name": "rent_charges_agreement_id_fkey", "columns": ["agreement_id"], "references": {"schema": "public", "table": "rent_agreements", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "rent_payments": {
+      "primary_key": {"name": "rent_payments_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "payment_reference_requires_provider", "expression": "((provider_payment_id IS NULL) OR (provider IS NOT NULL))"},
+        {"name": "rent_payments_amount_check", "expression": "(amount > (0)::numeric)"},
+        {"name": "rent_payments_currency_check", "expression": "(currency = 'AUD'::text)"},
+        {"name": "rent_payments_status_check", "expression": "(status = ANY (ARRAY['PENDING'::text, 'PROCESSING'::text, 'SUCCEEDED'::text, 'FAILED'::text, 'CANCELLED'::text, 'REFUNDED'::text]))"},
+        {"name": "successful_payment_requires_verification", "expression": "((status <> ALL (ARRAY['SUCCEEDED'::text, 'REFUNDED'::text])) OR (verified_at IS NOT NULL))"}
+      ],
+      "unique": [
+        {"name": "rent_payments_idempotency_key_key", "kind": "constraint", "keys": ["idempotency_key"]},
+        {"name": "rent_payments_provider_reference_idx", "kind": "index", "keys": ["provider", "provider_payment_id"], "where": "(provider_payment_id IS NOT NULL)"},
+        {"name": "rent_payments_stripe_intent_unique", "kind": "index", "keys": ["provider_payment_id"], "where": "((provider = 'STRIPE'::text) AND (provider_payment_id IS NOT NULL))"}
+      ],
+      "foreign_keys": [
+        {"name": "rent_payments_charge_id_fkey", "columns": ["charge_id"], "references": {"schema": "public", "table": "rent_charges", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "notify_after_verified_rent_payment", "timing": "after", "events": ["insert", "update"], "level": "row", "function": "notify_verified_rent_payment", "update_of": ["status", "verified_at"]}
+      ]
+    },
+    "rental_applications": {
+      "primary_key": {"name": "rental_applications_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "rental_applications_nonnegative_offer_check", "expression": "((offer_weekly_rent IS NULL) OR (offer_weekly_rent >= (0)::numeric))"},
+        {"name": "rental_applications_offer_weekly_rent_positive_check", "expression": "((offer_weekly_rent > (0)::numeric) AND (offer_weekly_rent <= 99999999.99))"}
+      ],
+      "unique": [
+        {"name": "rental_applications_listing_id_applicant_user_id_key", "kind": "index", "keys": ["listing_id", "applicant_user_id"]},
+        {"name": "rental_applications_one_approved_per_listing_idx", "kind": "index", "keys": ["listing_id"], "where": "(status = 'APPROVED'::\"ApplicationStatus\")"}
+      ],
+      "foreign_keys": [
+        {"name": "rental_applications_applicant_user_id_fkey", "columns": ["applicant_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "cascade"},
+        {"name": "rental_applications_listing_id_fkey", "columns": ["listing_id"], "references": {"schema": "public", "table": "listings", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": [
+        {"name": "rental_applications_listing_consistency_guard", "timing": "after", "events": ["insert", "update"], "level": "row", "function": "enforce_listing_application_consistency", "update_of": ["status"], "constraint": true, "deferrable": true, "initially_deferred": true},
+        {"name": "rental_applications_status_transition_guard", "timing": "before", "events": ["update"], "level": "row", "function": "enforce_application_status_transition", "update_of": ["status"]}
+      ]
+    },
+    "reviews": {
+      "primary_key": {"name": "reviews_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "reviews_landlord_rating_check", "expression": "((landlord_rating >= 1) AND (landlord_rating <= 5))"},
+        {"name": "reviews_landlord_reply_length_check", "expression": "((landlord_reply IS NULL) OR ((char_length(landlord_reply) >= 1) AND (char_length(landlord_reply) <= 2000)))"},
+        {"name": "reviews_rating_range_check", "expression": "((rating >= 1) AND (rating <= 5))"}
+      ],
+      "unique": [
+        {"name": "reviews_property_id_reviewer_user_id_key", "kind": "index", "keys": ["property_id", "reviewer_user_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "reviews_property_id_fkey", "columns": ["property_id"], "references": {"schema": "public", "table": "properties", "columns": ["id"]}, "on_delete": "set null", "on_update": "cascade"},
+        {"name": "reviews_reviewed_user_id_fkey", "columns": ["reviewed_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "cascade"},
+        {"name": "reviews_reviewer_user_id_fkey", "columns": ["reviewer_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "service_provider_profiles": {
+      "primary_key": {"name": "service_provider_profiles_pkey", "columns": ["user_id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "service_provider_profiles_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "tenant_lease_documents": {
+      "primary_key": {"name": "tenant_lease_documents_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "valid_lease_document_path", "expression": "((split_part(storage_path, '/'::text, 1) = (agreement_id)::text) AND (storage_path ~* '^[0-9a-f-]{36}/[^/]+\\.pdf$'::text))"}
+      ],
+      "unique": [
+        {"name": "tenant_lease_documents_id_agreement_unique", "kind": "constraint", "keys": ["id", "agreement_id"]},
+        {"name": "tenant_lease_documents_storage_path_key", "kind": "constraint", "keys": ["storage_path"]}
+      ],
+      "foreign_keys": [
+        {"name": "tenant_lease_documents_agreement_id_fkey", "columns": ["agreement_id"], "references": {"schema": "public", "table": "rent_agreements", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "tenant_lease_documents_uploaded_by_user_id_fkey", "columns": ["uploaded_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "notify_tenant_after_lease_document_upload", "timing": "after", "events": ["insert"], "level": "row", "function": "notify_tenant_lease_document_ready"},
+        {"name": "protect_tenant_lease_documents", "timing": "before", "events": ["insert", "delete", "update"], "level": "row", "function": "guard_tenant_lease_documents"}
+      ]
+    },
+    "tenant_lease_signature_evidence_files": {
+      "primary_key": {"name": "tenant_lease_signature_evidence_files_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "evidence_storage_path_valid", "expression": "(storage_path = ((agreement_id)::text || '/lease-with-signing-evidence.pdf'::text))"},
+        {"name": "tenant_lease_signature_evidence_files_evidence_pdf_sha256_check", "expression": "(evidence_pdf_sha256 ~ '^[a-f0-9]{64}$'::text)"},
+        {"name": "tenant_lease_signature_evidence_files_source_pdf_sha256_check", "expression": "(source_pdf_sha256 ~ '^[a-f0-9]{64}$'::text)"}
+      ],
+      "unique": [
+        {"name": "tenant_lease_signature_evidence_files_agreement_id_key", "kind": "constraint", "keys": ["agreement_id"]},
+        {"name": "tenant_lease_signature_evidence_files_owner_signature_id_key", "kind": "constraint", "keys": ["owner_signature_id"]},
+        {"name": "tenant_lease_signature_evidence_files_storage_path_key", "kind": "constraint", "keys": ["storage_path"]},
+        {"name": "tenant_lease_signature_evidence_files_tenant_signature_id_key", "kind": "constraint", "keys": ["tenant_signature_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "evidence_document_matches_agreement", "columns": ["source_document_id", "agreement_id"], "references": {"schema": "public", "table": "tenant_lease_documents", "columns": ["id", "agreement_id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "tenant_lease_signature_evidence_files_agreement_id_fkey", "columns": ["agreement_id"], "references": {"schema": "public", "table": "rent_agreements", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "tenant_lease_signature_evidence_files_owner_signature_id_fkey", "columns": ["owner_signature_id"], "references": {"schema": "public", "table": "rent_agreement_owner_signatures", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "tenant_lease_signature_evidence_files_tenant_signature_id_fkey", "columns": ["tenant_signature_id"], "references": {"schema": "public", "table": "tenant_lease_signatures", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "protect_tenant_lease_signature_evidence", "timing": "before", "events": ["insert", "delete", "update"], "level": "row", "function": "guard_tenant_lease_signature_evidence"}
+      ]
+    },
+    "tenant_lease_signatures": {
+      "primary_key": {"name": "tenant_lease_signatures_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "tenant_lease_signatures_document_sha256_check", "expression": "(document_sha256 ~ '^[a-f0-9]{64}$'::text)"},
+        {"name": "tenant_lease_signatures_signer_name_check", "expression": "((char_length(TRIM(BOTH FROM signer_name)) >= 2) AND (char_length(TRIM(BOTH FROM signer_name)) <= 160))"},
+        {"name": "tenant_lease_signatures_signing_method_check", "expression": "(signing_method = 'TYPED_NAME'::text)"}
+      ],
+      "unique": [
+        {"name": "one_tenant_signature_per_agreement", "kind": "constraint", "keys": ["agreement_id"]}
+      ],
+      "foreign_keys": [
+        {"name": "signature_document_matches_agreement", "columns": ["document_id", "agreement_id"], "references": {"schema": "public", "table": "tenant_lease_documents", "columns": ["id", "agreement_id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "tenant_lease_signatures_agreement_id_fkey", "columns": ["agreement_id"], "references": {"schema": "public", "table": "rent_agreements", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"},
+        {"name": "tenant_lease_signatures_signer_user_id_fkey", "columns": ["signer_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "no action", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "notify_owner_after_tenant_lease_signature", "timing": "after", "events": ["insert"], "level": "row", "function": "notify_owner_of_tenant_lease_signature"},
+        {"name": "protect_tenant_lease_signatures", "timing": "before", "events": ["insert", "delete", "update"], "level": "row", "function": "guard_tenant_lease_signatures"}
+      ]
+    },
+    "tenant_profiles": {
+      "primary_key": {"name": "tenant_profiles_pkey", "columns": ["user_id"]},
+      "checks": [
+        {"name": "tenant_profiles_budget_range_check", "expression": "((budget_min IS NULL) OR (budget_max IS NULL) OR (budget_min <= budget_max))"},
+        {"name": "tenant_profiles_positive_household_size_check", "expression": "((household_size IS NULL) OR (household_size > 0))"}
+      ],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "tenant_profiles_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": []
+    },
+    "user_account_archive_events": {
+      "primary_key": {"name": "user_account_archive_events_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [],
+      "foreign_keys": [
+        {"name": "user_account_archive_events_actor_user_id_fkey", "columns": ["actor_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"},
+        {"name": "user_account_archive_events_target_user_id_fkey", "columns": ["target_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "restrict", "on_update": "no action"}
+      ],
+      "triggers": []
+    },
+    "user_role_assignments": {
+      "primary_key": {"name": "user_role_assignments_pkey", "columns": ["id"]},
+      "checks": [],
+      "unique": [
+        {"name": "user_role_assignments_one_primary_per_user_key", "kind": "index", "keys": ["user_id"], "where": "is_primary"},
+        {"name": "user_role_assignments_user_id_role_key", "kind": "index", "keys": ["user_id", "role"]}
+      ],
+      "foreign_keys": [
+        {"name": "user_role_assignments_user_id_fkey", "columns": ["user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "cascade", "on_update": "cascade"}
+      ],
+      "triggers": [
+        {"name": "user_role_assignments_primary_guard", "timing": "before", "events": ["insert", "delete", "update"], "level": "row", "function": "guard_primary_role_assignment", "update_of": ["role", "is_primary"]}
+      ]
+    },
+    "users": {
+      "primary_key": {"name": "users_pkey", "columns": ["id"]},
+      "checks": [
+        {"name": "users_verification_status_check", "expression": "(verification_status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text]))"}
+      ],
+      "unique": [
+        {"name": "users_auth_user_id_key", "kind": "index", "keys": ["auth_user_id"]},
+        {"name": "users_email_key", "kind": "index", "keys": ["email"]}
+      ],
+      "foreign_keys": [
+        {"name": "users_approved_by_user_id_fkey", "columns": ["approved_by_user_id"], "references": {"schema": "public", "table": "users", "columns": ["id"]}, "on_delete": "set null", "on_update": "no action"}
+      ],
+      "triggers": [
+        {"name": "users_sync_primary_role_assignment", "timing": "after", "events": ["insert", "update"], "level": "row", "function": "sync_primary_role_assignment", "update_of": ["primary_role"]}
+      ]
+    }
+  },
+  "enums": {
+    "AccountStatus": ["PENDING_VERIFICATION", "ACTIVE", "SUSPENDED", "DEACTIVATED"],
+    "ApplicationDocumentStatus": ["UPLOADED", "VERIFIED", "REJECTED", "EXPIRED"],
+    "ApplicationStatus": ["SUBMITTED", "UNDER_REVIEW", "SHORTLISTED", "APPROVED", "REJECTED", "WITHDRAWN", "EXPIRED"],
+    "ComplaintSeverity": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+    "ComplaintStatus": ["OPEN", "IN_REVIEW", "ESCALATED", "RESOLVED", "CLOSED"],
+    "ConnectionContextType": ["NETWORK", "LISTING", "APPLICATION", "MANUAL"],
+    "ConnectionStatus": ["PENDING", "ACCEPTED", "DECLINED", "BLOCKED", "WITHDRAWN"],
+    "ConversationType": ["DIRECT", "GROUP", "APPLICATION", "PROPERTY", "SYSTEM"],
+    "ListingStatus": ["DRAFT", "PUBLISHED", "PAUSED", "APPLICATIONS_CLOSED", "LEASED", "ARCHIVED"],
+    "MessageType": ["TEXT", "SYSTEM", "FILE"],
+    "NotificationCategory": ["system", "bid", "social", "project"],
+    "ProfileDocumentReviewStatus": ["PENDING", "APPROVED", "REJECTED"],
+    "ProfileDocumentType": ["PASSPORT", "DRIVERS_LICENCE", "MEDICARE_CARD", "BIRTH_CERTIFICATE", "BANK_STATEMENT", "CENTRELINK_STATEMENT", "UTILITY_BILL", "RENT_LEDGER", "RENT_RECEIPT", "VEHICLE_REGISTRATION", "WRITTEN_REFERENCE", "OTHER", "GOVERNMENT_PHOTO_ID", "PROOF_OF_PROPERTY_OWNERSHIP", "PROPERTY_MANAGEMENT_AUTHORITY", "TRADE_LICENCE", "PUBLIC_LIABILITY_INSURANCE", "POLICE_CHECK"],
+    "PropertyType": ["APARTMENT", "HOUSE", "STUDIO", "TOWNHOUSE", "UNIT", "DUPLEX", "OTHER"],
+    "RecommendationSource": ["AI", "RULE_ENGINE", "MANUAL"],
+    "RecommendationType": ["PROPERTY", "USER", "PROFILE_MATCH", "SERVICE_PROVIDER"],
+    "RedFlagStatus": ["OPEN", "ACKNOWLEDGED", "RESOLVED", "DISMISSED"],
+    "ReviewStatus": ["PUBLISHED", "HIDDEN", "FLAGGED", "ARCHIVED"],
+    "UserRole": ["TENANT", "LANDLORD", "AGENT", "SERVICE_PROVIDER", "ADMIN", "REGULATOR"]
+  },
+  "left_out": {"functions": 260, "policies": 66, "storage triggers": 7}
+}

@@ -1,11 +1,11 @@
 // Derives the marketplace card/profile view-model from a live PublicProvider
 // record. Every value comes from Supabase via the API — nothing is invented.
 
-import type { PublicProvider } from '@/app/lib/api';
-import { formatMoney } from '@/app/lib/format';
+import type { PublicProvider } from './api';
+import { formatMoney } from './format';
 
 /** Placeholder used only when a provider has not uploaded an avatar yet. */
-export const PROVIDER_PLACEHOLDER_IMAGE = '/landing/provider-1.png';
+export const PROVIDER_PLACEHOLDER_IMAGE = '/provider-placeholder.svg';
 
 export function providerName(provider: PublicProvider): string {
   return provider.business_name || provider.profiles?.full_name || 'TenantVoice provider';
@@ -39,8 +39,17 @@ export function providerHref(provider: { id: string; slug: string | null }): str
   return `/providers/${provider.slug ?? provider.id}`;
 }
 
+/**
+ * Sign-in link from a provider's booking card, returning to the booking form
+ * with the chosen service, time and suburb. Tenants, landlords and providers
+ * can all book, so it preselects no account type.
+ */
+export function bookingSignInHref(pathname: string, booking: URLSearchParams): string {
+  return `/login?next=${encodeURIComponent(`${pathname}?${booking}#booking`)}`;
+}
+
 export function providerYearsLabel(provider: PublicProvider): string {
-  if (!provider.years_experience) return '—';
+  if (provider.years_experience == null) return '—';
   return `${provider.years_experience} year${provider.years_experience === 1 ? '' : 's'}`;
 }
 
@@ -67,4 +76,15 @@ export function providerServiceAreaLabel(provider: PublicProvider): string {
   return base
     ? `${provider.service_radius_km}km of ${base}`
     : `${provider.service_radius_km}km radius`;
+}
+
+/** Badge claims require review evidence, not arbitrary seeded marketing labels. */
+export function providerBadge(provider: PublicProvider): string | null {
+  return provider.review_count >= 3 && provider.rating_avg >= 4.5 ? 'Top rated' : null;
+}
+
+export function matchesProviderLocation(provider: PublicProvider, query: string): boolean {
+  const normalize = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const haystack = normalize([provider.profiles?.location, provider.profiles?.state, provider.profiles?.postcode].filter(Boolean).join(' '));
+  return normalize(query).split(/\s+/).filter(Boolean).every((part) => haystack.includes(part));
 }

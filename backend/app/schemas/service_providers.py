@@ -1,10 +1,19 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
+# The web's provider categories (maps_provider_core.WEB_CATEGORIES, the CHECK of
+# web.service_categories): each is saved as its shared repair codes too
+# (maps_provider_core.WEB_CATEGORY_CODES).
+WebCategory = Literal[
+    "co_host_inspector", "real_estate_agent", "accountant", "tradie", "cleaner",
+    "photographer", "conveyancer", "property_manager", "other",
+]
+
 
 class ServiceProviderCreate(BaseModel):
-    category: str
+    category: WebCategory
     business_name: str | None = None
     abn: str | None = None
     tagline: str | None = None
@@ -20,7 +29,7 @@ class ServiceProviderCreate(BaseModel):
 
 
 class ServiceProviderUpdate(BaseModel):
-    category: str | None = None
+    category: WebCategory | None = None
     business_name: str | None = None
     abn: str | None = None
     tagline: str | None = None
@@ -51,7 +60,8 @@ class ProfileSummary(BaseModel):
 class ServiceProviderOut(BaseModel):
     id: str
     profile_id: str
-    category: str
+    # None until the provider chooses one in onboarding step 1.
+    category: str | None = None
     slug: str | None = None
     business_name: str | None = None
     abn: str | None = None
@@ -82,7 +92,10 @@ class ServiceProviderPublicOut(ServiceProviderOut):
     # Derived, read-only presentation fields resolved by the service layer.
     category_name: str | None = None
     category_slug: str | None = None
+    # The account's verified badge (badges.is_verified), as public profiles show it.
+    verified: bool = False
     verifications: list[str] = []
     from_price: float | None = None
     price_unit: str | None = None
     service_count: int = 0
+    completed_jobs: int = 0

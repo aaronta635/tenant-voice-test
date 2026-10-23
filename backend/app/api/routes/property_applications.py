@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
 from app.core.deps import CurrentProfile, require_role
+from app.schemas.documents import DocumentLinkOut
 from app.schemas.property_applications import ApplicationCreate, ApplicationOut, ApplicationUpdate
 from app.services import property_applications as applications_service
 
@@ -9,6 +10,7 @@ router = APIRouter(tags=["property-applications"])
 
 @router.post("/applications", response_model=ApplicationOut, status_code=status.HTTP_201_CREATED)
 def create_application(payload: ApplicationCreate, current: CurrentProfile = Depends(require_role("tenant"))):
+    """Apply (submit_rental_application), or apply again once a decline, a withdrawal or the expiry closed it."""
     return applications_service.create_application(current.id, payload.model_dump(mode="json"))
 
 
@@ -19,7 +21,8 @@ def list_my_applications(current: CurrentProfile = Depends(require_role("tenant"
 
 @router.delete("/applications/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
 def withdraw_application(application_id: str, current: CurrentProfile = Depends(require_role("tenant"))):
-    applications_service.withdraw_application(application_id, current.id)
+    """Withdraw as the mobile app does (mobile_withdraw_application, run with the tenant's token)."""
+    applications_service.withdraw_application(application_id, current)
 
 
 @router.get("/properties/{property_id}/applications", response_model=list[ApplicationOut])
@@ -37,4 +40,17 @@ def update_application(
     payload: ApplicationUpdate,
     current: CurrentProfile = Depends(require_role("landlord")),
 ):
+    """Decide (review_rental_application): only the property's LANDLORD owner; an agent or a manager gets 403."""
     return applications_service.update_application(application_id, current.id, payload.model_dump())
+
+
+@router.get("/applications/{application_id}/documents/{document_id}/link", response_model=DocumentLinkOut)
+def open_application_document(
+    application_id: str,
+    document_id: str,
+    response: Response,
+    current: CurrentProfile = Depends(require_role("landlord")),
+):
+    """A link to a document the applicant shares, that works for a few minutes; ask again to open it later."""
+    response.headers["Cache-Control"] = "no-store"
+    return applications_service.document_link(application_id, document_id, current.id)

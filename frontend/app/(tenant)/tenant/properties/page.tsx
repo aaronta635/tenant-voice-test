@@ -2,10 +2,18 @@ import TenantShell from '@/app/components/tenant/TenantShell';
 import PropertyMarketplace from '@/app/components/rental/PropertyMarketplace';
 
 export const metadata = {
-  title: 'Properties - TenantVoice',
+  title: 'Properties',
 };
 
-export default function TenantPropertiesPage() {
+type Props = {
+  // A link that repeats ?q gets an array.
+  searchParams: Promise<{ q?: string | string[] }>;
+};
+
+export default async function TenantPropertiesPage({ searchParams }: Props) {
+  const { q } = await searchParams;
+  const query = (Array.isArray(q) ? q[0] : q) ?? '';
+
   return (
     <TenantShell>
       <main className="mx-auto w-full max-w-[1240px] px-6 py-8">
@@ -20,7 +28,7 @@ export default function TenantPropertiesPage() {
             Tenants can browse homes, compare price and photos, then click into a room or property detail.
           </p>
         </div>
-        <PropertyMarketplace />
+        <PropertyMarketplace initialQuery={query} />
       </main>
     </TenantShell>
   );

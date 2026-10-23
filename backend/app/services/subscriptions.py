@@ -2,23 +2,22 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 
-from app.core.supabase import get_supabase_client
+from app.core.supabase import web_table
 
+# Web-only tables (web schema): the plan catalogue and each user's one subscription.
 PLANS_TABLE = "subscription_plans"
 SUBS_TABLE = "user_subscriptions"
 
 
 def _plan(plan_id: str) -> dict:
-    supabase = get_supabase_client()
-    result = supabase.table(PLANS_TABLE).select("*").eq("id", plan_id).limit(1).execute()
+    result = web_table(PLANS_TABLE).select("*").eq("id", plan_id).limit(1).execute()
     if not result.data:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Plan not found")
     return result.data[0]
 
 
 def get_my_subscription(profile_id: str) -> dict | None:
-    supabase = get_supabase_client()
-    result = supabase.table(SUBS_TABLE).select("*").eq("user_id", profile_id).limit(1).execute()
+    result = web_table(SUBS_TABLE).select("*").eq("user_id", profile_id).limit(1).execute()
     if not result.data:
         return None
     subscription = result.data[0]
@@ -27,8 +26,7 @@ def get_my_subscription(profile_id: str) -> dict | None:
 
 
 def list_plans(profile_id: str | None = None, audience: str | None = None) -> list[dict]:
-    supabase = get_supabase_client()
-    query = supabase.table(PLANS_TABLE).select("*").eq("is_active", True)
+    query = web_table(PLANS_TABLE).select("*").eq("is_active", True)
     if audience:
         query = query.eq("audience", audience)
     plans = query.order("sort_order").execute().data or []
@@ -46,7 +44,6 @@ def list_plans(profile_id: str | None = None, audience: str | None = None) -> li
 
 def select_plan(profile_id: str, plan_id: str) -> dict:
     plan = _plan(plan_id)
-    supabase = get_supabase_client()
 
     renews_at = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
     payload = {
@@ -56,11 +53,12 @@ def select_plan(profile_id: str, plan_id: str) -> dict:
         "renews_at": renews_at,
     }
 
-    existing = supabase.table(SUBS_TABLE).select("id").eq("user_id", profile_id).limit(1).execute()
+    # user_id is unique: a user changes plan on their one subscription row.
+    existing = web_table(SUBS_TABLE).select("id").eq("user_id", profile_id).limit(1).execute()
     if existing.data:
-        result = supabase.table(SUBS_TABLE).update(payload).eq("user_id", profile_id).execute()
+        result = web_table(SUBS_TABLE).update(payload).eq("user_id", profile_id).execute()
     else:
-        result = supabase.table(SUBS_TABLE).insert(payload).execute()
+        result = web_table(SUBS_TABLE).insert(payload).execute()
 
     subscription = result.data[0]
     subscription["plan"] = plan
@@ -68,13 +66,7 @@ def select_plan(profile_id: str, plan_id: str) -> dict:
 
 
 def cancel(profile_id: str) -> dict:
-    supabase = get_supabase_client()
-    result = (
-        supabase.table(SUBS_TABLE)
-        .update({"status": "cancelled"})
-        .eq("user_id", profile_id)
-        .execute()
-    )
+    result = web_table(SUBS_TABLE).update({"status": "cancelled"}).eq("user_id", profile_id).execute()
     if not result.data:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No subscription to cancel")
     subscription = result.data[0]

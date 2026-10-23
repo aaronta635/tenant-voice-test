@@ -6,6 +6,7 @@ import Card from '@/app/components/ui/Card';
 import Button from '@/app/components/ui/Button';
 import Input from '@/app/components/ui/Input';
 import WizardSteps from '@/app/components/owner/WizardSteps';
+import ListingImport from '@/app/components/rental/import/ListingImport';
 import { getDraft, saveDraft, type ListingDraft } from '@/app/lib/owner-listing-draft';
 
 export default function CreateListingPropertyDetailsPage() {
@@ -13,6 +14,10 @@ export default function CreateListingPropertyDetailsPage() {
   const [draft, setDraft] = useState<ListingDraft>({});
 
   useEffect(() => {
+    // Hydrate the client-only localStorage draft after mount. This cannot be
+    // lazy initial state: the server renders an empty draft, so reading
+    // localStorage during the first render would mismatch the SSR markup.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(getDraft());
   }, []);
 
@@ -22,6 +27,10 @@ export default function CreateListingPropertyDetailsPage() {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const bedrooms = Number(draft.bedrooms);
+    const bathrooms = Number(draft.bathrooms);
+    if (draft.bedrooms && (!Number.isFinite(bedrooms) || bedrooms < 0)) return;
+    if (draft.bathrooms && (!Number.isFinite(bathrooms) || bathrooms < 0)) return;
     saveDraft(draft);
     router.push('/owner/properties/create/photos');
   }
@@ -34,6 +43,8 @@ export default function CreateListingPropertyDetailsPage() {
           <WizardSteps current={0} />
         </div>
       </div>
+
+      <ListingImport onUse={(details) => setDraft((prev) => ({ ...prev, ...details }))} />
 
       <Card className="p-6">
         <h2 className="font-heading text-lg font-semibold text-text-dark">Property Details</h2>
@@ -58,12 +69,14 @@ export default function CreateListingPropertyDetailsPage() {
               placeholder="Cityville"
               value={draft.suburb ?? ''}
               onChange={(e) => set('suburb', e.target.value)}
+              required
             />
             <Input
               label="State"
               placeholder="NSW"
               value={draft.state ?? ''}
               onChange={(e) => set('state', e.target.value)}
+              required
             />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -78,12 +91,15 @@ export default function CreateListingPropertyDetailsPage() {
               placeholder="2000"
               value={draft.postcode ?? ''}
               onChange={(e) => set('postcode', e.target.value)}
+              required
             />
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Bedrooms"
               type="number"
+              min={0}
+              step={1}
               placeholder="2"
               value={draft.bedrooms ?? ''}
               onChange={(e) => set('bedrooms', e.target.value)}
@@ -91,6 +107,8 @@ export default function CreateListingPropertyDetailsPage() {
             <Input
               label="Bathrooms"
               type="number"
+              min={0}
+              step={1}
               placeholder="2"
               value={draft.bathrooms ?? ''}
               onChange={(e) => set('bathrooms', e.target.value)}

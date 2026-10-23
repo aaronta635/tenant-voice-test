@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+# the browser journeys' screenshots, report and logs (e2e/run.mjs)
+/e2e/out/
 
 # next.js
 /.next/

@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import TenantShell from '@/app/components/tenant/TenantShell';
 import TenantScreenTemplates from '@/app/components/tenant/TenantScreenTemplates';
 import { getTenantScreen, TENANT_SCREENS } from '@/app/lib/tenant-data';
@@ -9,7 +9,10 @@ type TenantSectionPageProps = {
 
 export function generateStaticParams() {
   return TENANT_SCREENS
-    .filter((screen) => !['messages', 'properties'].includes(screen.slug))
+    .filter(
+      (screen) =>
+        !['messages', 'properties', 'network', 'recommendations'].includes(screen.slug),
+    )
     .map((screen) => ({ section: screen.slug }));
 }
 
@@ -27,6 +30,8 @@ export default async function TenantSectionPage({ params }: TenantSectionPagePro
   const screen = getTenantScreen(section);
 
   if (!screen) notFound();
+  if (section === 'signup') redirect('/register?role=tenant');
+  if (section === 'login') redirect('/login?role=tenant');
 
   return (
     <TenantShell>

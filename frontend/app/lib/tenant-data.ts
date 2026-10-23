@@ -8,7 +8,8 @@ export type TenantScreenKind =
   | 'subscription'
   | 'support'
   | 'connections'
-  | 'score';
+  | 'score'
+  | 'checklist';
 
 export type TenantScreen = {
   slug: string;
@@ -20,13 +21,25 @@ export type TenantScreen = {
 };
 
 export const TENANT_NAV = [
-  { label: 'Dashboard', href: '/tenant/dashboard' },
-  { label: 'Ratings & Reviews', href: '/tenant/write-review' },
-  { label: 'Properties', href: '/tenant/properties' },
-  { label: 'Applications', href: '/tenant/applications' },
-  { label: 'Connections', href: '/tenant/network' },
-  { label: 'Messages', href: '/tenant/messages' },
-];
+  { label: 'Dashboard', href: '/tenant/dashboard', icon: 'dashboard' },
+  { label: 'Applications', href: '/tenant/applications', icon: 'applications' },
+  { label: 'Inspections', href: '/tenant/inspections', icon: 'search' },
+  { label: 'Leases', href: '/tenant/leases', icon: 'applications' },
+  { label: 'My rent', href: '/tenant/rent', icon: 'subscription' },
+  { label: 'Service bookings', href: '/tenant/bookings', icon: 'applications' },
+  { label: 'Properties', href: '/tenant/properties', icon: 'properties' },
+  { label: 'Find Providers', href: '/categories', icon: 'providers' },
+  { label: 'Recommendations', href: '/tenant/recommendations', icon: 'recommendations' },
+  { label: 'Maintenance', href: '/tenant/maintenance', icon: 'repairs' },
+  { label: 'Complaints', href: '/tenant/complaints', icon: 'score' },
+  { label: 'Network', href: '/tenant/network', icon: 'network' },
+  { label: 'Subscription', href: '/tenant/manage-subscription', icon: 'subscription' },
+  { label: 'Profile Completion', href: '/tenant/profile-completion', icon: 'profile' },
+  { label: 'Tenant Qualities', href: '/tenant/scorecard', icon: 'score' },
+  { label: 'Search Profiles', href: '/tenant/search-profile', icon: 'search' },
+] as const;
+
+export type TenantNavIcon = (typeof TENANT_NAV)[number]['icon'];
 
 export const TENANT_SCREENS: TenantScreen[] = [
   {
@@ -61,7 +74,7 @@ export const TENANT_SCREENS: TenantScreen[] = [
     slug: 'search-profile',
     figmaId: '88:1655',
     title: 'Search Profiles',
-    description: 'Search tenant, owner, agent, and reference profiles connected to your rental journey.',
+    description: 'Search tenants, owners, and service providers to connect with or message.',
     kind: 'connections',
   },
   {
@@ -76,7 +89,7 @@ export const TENANT_SCREENS: TenantScreen[] = [
     figmaId: '88:2489',
     title: 'Profile Completion',
     description: 'Complete the steps that make your tenant profile stronger for applications.',
-    kind: 'cards',
+    kind: 'checklist',
   },
   {
     slug: 'scorecard',

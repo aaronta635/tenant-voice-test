@@ -35,18 +35,3 @@ class NotificationOut(BaseModel):
     is_read: bool
     created_at: datetime
 
-
-class InspectionOut(BaseModel):
-    id: str
-    property_id: str
-    starts_at: datetime
-    duration_minutes: int
-    capacity: int | None = None
-    notes: str | None = None
-
-
-class InspectionCreate(BaseModel):
-    starts_at: datetime
-    duration_minutes: int = 30
-    capacity: int | None = None
-    notes: str | None = None

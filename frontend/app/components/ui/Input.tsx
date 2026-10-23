@@ -1,5 +1,7 @@
 'use client';
 
+import { useId } from 'react';
+import { mergeClasses } from './merge-classes';
 import type { FC, InputHTMLAttributes, ReactNode } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -22,10 +24,11 @@ const Input: FC<InputProps> = ({
   id,
   ...props
 }) => {
-  const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
 
   return (
-    <div className="flex flex-col gap-[6px] w-full">
+    <div className="flex flex-col gap-2 w-full min-w-0">
       {label && (
         <label
           htmlFor={inputId}
@@ -37,7 +40,7 @@ const Input: FC<InputProps> = ({
           {label}
         </label>
       )}
-      <div className="relative flex items-center w-full">
+      <div className="relative flex items-center w-full min-w-0">
         {leadingIcon && (
           <span className="absolute left-3 flex items-center text-[#9a9aa3] pointer-events-none">
             {leadingIcon}
@@ -45,19 +48,17 @@ const Input: FC<InputProps> = ({
         )}
         <input
           id={inputId}
-          className={[
-            'w-full h-[46px] rounded-[4px]',
-            'border border-[#dee1e6] bg-[rgba(243,244,246,0.4)]',
-            'text-sm text-[#171a1f] placeholder:text-[#9a9aa3]',
+          className={mergeClasses(
+            'min-w-0 w-full min-h-11 rounded-lg py-2',
+            'border border-control-border bg-white',
+            'text-sm text-[#171a1f] placeholder:text-text-subtle',
             'px-3',
             leadingIcon ? 'pl-10' : '',
             trailingIcon ? 'pr-10' : '',
-            'focus:outline-none focus:ring-2 focus:ring-[#636ae8] focus:border-transparent',
+            'focus:outline-2 focus:outline-offset-2 focus:outline-primary-strong',
             'transition-shadow duration-150',
             className,
-          ]
-            .filter(Boolean)
-            .join(' ')}
+          )}
           {...props}
         />
         {trailingIcon && (

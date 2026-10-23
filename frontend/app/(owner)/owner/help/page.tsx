@@ -2,17 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import DemoLabel from '@/app/components/demo/DemoLabel';
 import Card from '@/app/components/ui/Card';
 import Button from '@/app/components/ui/Button';
 import Input from '@/app/components/ui/Input';
 import FaqAccordion from '@/app/components/owner/FaqAccordion';
+import SupportChat from '@/app/components/support/SupportChat';
 import { BotIcon, MessageSquareIcon, MailIcon, PhoneIcon } from '@/app/components/owner/icons';
 import { api, safe, type Faq, type SupportContact } from '@/app/lib/api';
+import { sampleContactReason } from '@/app/lib/demo';
 
 export default function HelpContactPage() {
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [contact, setContact] = useState<SupportContact | null>(null);
   const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -31,17 +38,21 @@ export default function HelpContactPage() {
     };
   }, []);
 
-  const quickActions = [
+  // The form below mails this address when the contact cannot be read.
+  const supportEmail = contact?.email ?? 'support@tenantvoice.test';
+  const sampleReason = sampleContactReason({ email: supportEmail, phone: contact?.phone });
+  const quickActions: { href: string; title: string; description: string; icon: React.ReactNode; demo?: string }[] = [
     {
       href: '/owner/help/ai-chat',
       title: 'Chat with AI',
       description: 'Get instant help 24/7',
+      // Real since R29: the model answers once a key is set, else fixed rules from the owner's records.
       icon: <BotIcon className="text-primary" />,
     },
     {
-      href: '/owner/messages',
-      title: 'Live Chat',
-      description: 'Talk to our human team',
+      href: '/contact',
+      title: 'Contact us',
+      description: 'Send our team a message',
       icon: <MessageSquareIcon className="text-primary" />,
     },
     ...(contact
@@ -90,21 +101,34 @@ export default function HelpContactPage() {
                 <div className="flex size-12 items-center justify-center rounded-2xl bg-surface">
                   {action.icon}
                 </div>
-                <p className="font-medium text-text-dark">{action.title}</p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <p className="font-medium text-text-dark">{action.title}</p>
+                  {action.demo ? <DemoLabel reason={action.demo} /> : null}
+                </div>
                 <p className="text-sm text-text-body">{action.description}</p>
               </Card>
             </Link>
           ))}
         </div>
+        {!loading && sampleReason ? <DemoLabel variant="notice" className="mt-4" reason={sampleReason} /> : null}
       </div>
+
+      <SupportChat audience="landlord" />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="p-6">
           <h2 className="font-heading text-lg font-semibold text-text-dark">Send us a Message</h2>
-          <form className="mt-4 flex flex-col gap-4">
-            <Input label="Your Name" placeholder="Your full name" />
-            <Input label="Email Address" type="email" placeholder="you@example.com" />
-            <Input label="Subject" placeholder="Briefly describe your issue" />
+          <form
+            className="mt-4 flex flex-col gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const body = [`From: ${name} <${email}>`, '', message].join('\n');
+              window.location.href = `mailto:${supportEmail}?subject=${encodeURIComponent(subject || 'Owner support')}&body=${encodeURIComponent(body)}`;
+            }}
+          >
+            <Input label="Your Name" placeholder="Your full name" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input label="Email Address" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <Input label="Subject" placeholder="Briefly describe your issue" value={subject} onChange={(e) => setSubject(e.target.value)} required />
             <div className="flex flex-col gap-[6px]">
               <label
                 htmlFor="support-message"
@@ -115,12 +139,13 @@ export default function HelpContactPage() {
               <textarea
                 id="support-message"
                 rows={4}
-                placeholder="Tell us how we can help you..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                required
                 className="w-full rounded border border-[#dee1e6] bg-[rgba(243,244,246,0.4)] p-3 text-sm text-text-dark placeholder:text-text-subtle focus:border-transparent focus:ring-2 focus:ring-primary focus:outline-none"
               />
             </div>
-            {/* TODO: submission needs a support-ticket endpoint; email/phone above are live. */}
-            <Button type="button" variant="primary">
+            <Button type="submit" variant="primary">
               Send Message
             </Button>
             <p className="text-center text-xs text-text-subtle">

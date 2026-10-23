@@ -1,7 +1,9 @@
-import Link from 'next/link';
+import Link, { type LinkProps } from 'next/link';
 
 type BrandLogoProps = {
   href?: string;
+  /** Passed to the Link, such as navigateWithinPage when href can be the open page. */
+  onNavigate?: LinkProps['onNavigate'];
   size?: 'sm' | 'md' | 'lg';
   showWordmark?: boolean;
   className?: string;
@@ -53,6 +55,7 @@ export function BrandMark({ size = 36 }: { size?: number }) {
 
 export default function BrandLogo({
   href = '/',
+  onNavigate,
   size = 'md',
   showWordmark = true,
   className = '',
@@ -83,6 +86,7 @@ export default function BrandLogo({
   return (
     <Link
       href={href}
+      onNavigate={onNavigate}
       aria-label="Go to TenantVoice home"
       className="-m-2 inline-flex items-center rounded-[8px] p-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
     >

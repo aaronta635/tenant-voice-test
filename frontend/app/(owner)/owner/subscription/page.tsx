@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import DemoLabel from '@/app/components/demo/DemoLabel';
 import Card from '@/app/components/ui/Card';
 import Button from '@/app/components/ui/Button';
 import { CheckIcon } from '@/app/components/owner/icons';
@@ -70,6 +71,11 @@ export default function ManageSubscriptionPage() {
           View and manage your plan, billing details, and notifications.
         </p>
       </div>
+
+      <DemoLabel
+        variant="notice"
+        reason="No payment is taken: choosing a plan records it on your account, and billing, renewals and plan limits are not active."
+      />
 
       {error ? (
         <p className="rounded-xl border border-[#f3c6c6] bg-[#fdecee] px-4 py-3 text-sm text-[#a12b3b]">

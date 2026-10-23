@@ -1,9 +1,15 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import BrandLogo from '@/app/components/BrandLogo';
+import { api, safe } from '@/app/lib/api';
 import { getRoleHomeHref } from '@/app/lib/session-role';
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const homeHref = await getRoleHomeHref();
+  // Real marketplace figures (the same ones the landing page shows); hidden
+  // rather than invented if the API can't be reached. They stream in after
+  // the form, so a slow API never holds up signing in or out.
+  const platformStats = safe(api.content.platformStats(), null);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#fafafe]">
@@ -34,21 +40,22 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           <p className="inline-flex items-center rounded-full border border-[#efeff2] bg-white px-3 py-1 text-xs font-semibold text-[#5f6b76] shadow-[0_1px_1px_rgba(14,42,72,0.04)]">
             Property services, finally on your terms
           </p>
-          <h1
+          <p
             className="mt-5 max-w-md text-[40px] leading-[1.1] font-extrabold tracking-[-1px] text-[#1b1b1f]"
             style={{ fontFamily: 'var(--font-heading)' }}
           >
             One account for verified providers, bookings, and reviews.
-          </h1>
+          </p>
           <p className="mt-4 max-w-md text-base leading-relaxed text-[#5f6b76]">
-            Sign in to pick up where you left off — whether you&apos;re booking a
-            fixed-price inspection or running your provider workspace.
+            Book property services, manage your properties, or build your service provider profile with a TenantVoice account.
           </p>
 
           <ul className="mt-8 space-y-3">
+            {/* What the verification gates check (backend services/gates.py): an ABN is optional, so none is promised. */}
             {[
-              'ID, ABN and insurance checks before anyone lists',
-              'Fixed prices — no quote games',
+              'Owners verify their ID and ownership before a listing is published',
+              'Providers verify their ID and insurance before going live',
+              'Clear upfront pricing',
               'Reviews only from completed TenantVoice jobs',
             ].map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-[#5f6b76]">
@@ -60,20 +67,26 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             ))}
           </ul>
 
-          <div className="mt-10 flex flex-wrap gap-6 text-[#0e2a48]">
-            <div>
-              <p className="text-2xl font-extrabold">4,820+</p>
-              <p className="text-xs text-[#8c97a2]">verified providers</p>
-            </div>
-            <div>
-              <p className="text-2xl font-extrabold">4.92 ★</p>
-              <p className="text-xs text-[#8c97a2]">average rating</p>
-            </div>
-            <div>
-              <p className="text-2xl font-extrabold">38,400</p>
-              <p className="text-xs text-[#8c97a2]">jobs completed</p>
-            </div>
-          </div>
+          <Suspense fallback={null}>
+            {platformStats.then((stats) => stats ? (
+              <div className="mt-10 flex flex-wrap gap-6 text-[#0e2a48]">
+                <div>
+                  <p className="text-2xl font-extrabold">{stats.verified_providers.toLocaleString('en-AU')}</p>
+                  <p className="text-xs text-[#5f6b76]">verified providers</p>
+                </div>
+                {stats.review_count > 0 ? (
+                  <div>
+                    <p className="text-2xl font-extrabold">{stats.average_rating.toFixed(1)} ★</p>
+                    <p className="text-xs text-[#5f6b76]">average rating</p>
+                  </div>
+                ) : null}
+                <div>
+                  <p className="text-2xl font-extrabold">{stats.jobs_completed.toLocaleString('en-AU')}</p>
+                  <p className="text-xs text-[#5f6b76]">jobs completed</p>
+                </div>
+              </div>
+            ) : null)}
+          </Suspense>
         </aside>
 
         <div className="w-full max-w-[460px] justify-self-center lg:justify-self-end">
@@ -81,21 +94,21 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         </div>
       </main>
 
-      <footer className="relative z-10 border-t border-[#efeff2] bg-white/70 py-4 text-center text-xs text-[#8c97a2]">
+      <footer className="relative z-10 border-t border-[#efeff2] bg-white/70 py-4 text-center text-xs text-text-body">
         <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-center gap-3 px-6">
           <span>© 2026 TenantVoice</span>
           <span className="opacity-40">·</span>
-          <a href="#" className="hover:text-[#5f6b76]">
+          <Link href="/privacy" className="hover:text-[#5f6b76]">
             Privacy
-          </a>
+          </Link>
           <span className="opacity-40">·</span>
-          <a href="#" className="hover:text-[#5f6b76]">
+          <Link href="/terms" className="hover:text-[#5f6b76]">
             Terms
-          </a>
+          </Link>
           <span className="opacity-40">·</span>
-          <a href="#" className="hover:text-[#5f6b76]">
+          <Link href="/contact" className="hover:text-[#5f6b76]">
             Support
-          </a>
+          </Link>
         </div>
       </footer>
     </div>

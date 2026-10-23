@@ -1,6 +1,56 @@
 # Messaging feature — build plan
 
-_Last updated: 2026-08-04_
+_Last updated: 2026-10-23. The first section describes messaging on the
+shared database; the rest is the original plan (2026-08-04) for the web-only
+project._
+
+## On the shared database
+
+Threads, messages, connections and notifications live in the tables the
+mobile app uses too (migration plan §3 a3-a5). The API and its response
+models are unchanged; `backend/app/services/maps_messaging.py` maps the rows.
+
+- **Threads.** A thread is a `conversations` row whose members are
+  `conversation_participants` rows, and only those rows decide who may read
+  or write it. The web names its kind in `conversations.metadata`:
+  `{kind: "marketplace", client_id, provider_id, booking_id}` for a client and
+  a provider (a DIRECT thread), or `{kind: "rental", tenant_id, owner_id}`
+  for a tenant and an owner about a listing (a PROPERTY thread with
+  `listing_id`) or a network DM (DIRECT, the smaller id is `tenant_id`). A
+  thread the mobile app opened has no such metadata: its parties come from
+  the members' `users.primary_role`. Finding two people's thread takes only
+  a DIRECT or PROPERTY thread with the two of them as its only members, never
+  a GROUP thread or one with anyone else in it. Such a thread the mobile app
+  opened is their thread about its listing (or their general one), whatever
+  their roles suggest; one the web opened only serves its own kind, so a DM
+  never takes a booking's thread.
+- **Messages.** `messages.sender_user_id` and `content`, with `message_type`
+  TEXT, SYSTEM (a note, possibly from nobody) or FILE; a file is a
+  `message_attachments` row whose `file_url` is the Storage key in the
+  private `message-attachments` bucket (`supabase/shared/0003_storage.sql`).
+  `deleted_at` hides a message. Sending moves the thread's `updated_at`,
+  which orders the inbox.
+- **Read and unread.** Each member's `last_read_at`. Unread means other
+  people's messages newer than it; reading a thread sets it to the newest
+  message's `created_at`. A message is read once another member's
+  `last_read_at` reaches it.
+- **Connections.** `connection_requests` from `sender_user_id` to
+  `receiver_user_id`, status PENDING, ACCEPTED or DECLINED (BLOCKED reads as
+  declined; WITHDRAWN, a request taken back in the app, is none and never
+  blocks a new request). Network DMs need an ACCEPTED one.
+- **Notifications.** `notifications.link`, a body that is never null, and
+  the shared category (`message` and `review` are social, `booking` and
+  `application` project, the rest system); a read takes the web kind from
+  the link.
+
+For other areas (`backend/app/services/conversations.py`):
+
+| Helper | Use |
+|---|---|
+| `marketplace_thread(client_id, provider_id, *, booking_id=None, subject=None, created_by=None)` | Find or open the client and provider's thread, one per booking (`None` for their general thread). Returns the thread's ConversationOut fields; keep its `id` in `web.bookings.conversation_id`. No checks: the caller knows the two may talk. |
+| `post_message(conversation_id, sender_id, content, *, system=False, attachment=None)` | Write a TEXT, SYSTEM or FILE message and move the thread up the inbox. A file must be the sender's own upload (`uploads.message_attachment_folder(sender_id)` in `message-attachments`), else `ValueError`: readers show no other file, and a note from nobody carries none. No other checks and no notification: send one with `notifications.notify()`. |
+| `unread_counts(profile_id, conversation_ids=None)` | Unread messages per thread for one person, by the inbox's rule. |
+| `notifications.notify(user_id, category, title, body=None, link=None)` | One notice; `category` is a web kind. Never raises. |
 
 ## TL;DR — do we need WebSockets?
 

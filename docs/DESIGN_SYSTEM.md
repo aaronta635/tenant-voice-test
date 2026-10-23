@@ -1,6 +1,6 @@
 # TenantVoice — Design System
 
-This file is the working documentation of the TenantVoice design system. The **Figma file is the source of truth**; this document exists to give developers (and Claude Code) a fast reference without opening Figma every time.
+This file is the working documentation of the TenantVoice design system. The **Figma file is the source of truth**; this document exists to give developers a fast reference without opening Figma every time.
 
 If Figma and this file disagree, Figma wins — then update this file. Do not update the code to match Figma without also updating this file.
 
@@ -10,7 +10,7 @@ If Figma and this file disagree, Figma wins — then update this file. Do not up
 
 ## How to use this doc
 
-- **Frontend devs & Claude Code:** use the tokens and component list here first. Only open Figma when this doc is ambiguous.
+- **Frontend developers:** use the tokens and component list here first. Only open Figma when this doc is ambiguous.
 - **Designer:** when you change something in Figma, add a note in the `Changelog` section at the bottom and update the affected section.
 - **Everyone:** if you're about to hard-code a hex value, spacing, or font size — stop. Check this doc, then Figma, then ask.
 
@@ -35,7 +35,7 @@ Tokens are implemented in `frontend/app/globals.css` under `@theme` (Tailwind v4
 
 | Token | Hex | Tailwind class | Usage |
 |---|---|---|---|
-| `primary` | `#636ae8` | `bg-primary` `text-primary` | Primary CTAs, active nav, key links |
+| `primary` | `#636ae8` | `bg-primary` `text-primary` | Brand accents only: borders, focus rings, progress fills and large text. Never small text or a fill behind it (white on `primary` is 4.41:1) — use `primary-strong` |
 | `navy` | `#0e2a48` | `bg-navy` `text-navy` | Dark headers, footer, high-contrast surfaces |
 
 ### Text
@@ -45,7 +45,7 @@ Tokens are implemented in `frontend/app/globals.css` under `@theme` (Tailwind v4
 | `text-dark` | `#171a1f` | `text-text-dark` | Primary text (also the default `body` colour) |
 | `text-body` | `#565d6d` | `text-text-body` | Body copy |
 | `text-muted` | `#565d6d` | `text-text-muted` | Secondary text (same value as body today) |
-| `text-subtle` | `#8c97a2` | `text-text-subtle` | Captions, metadata, placeholders |
+| `text-subtle` | `#626f7c` | `text-text-subtle` | Captions, metadata, placeholders |
 
 ### Surfaces & borders
 
@@ -59,9 +59,14 @@ Tokens are implemented in `frontend/app/globals.css` under `@theme` (Tailwind v4
 
 | Token | Hex | Tailwind class | Usage |
 |---|---|---|---|
+| `primary-strong` | `#4f46b8` | `bg-primary-strong` `text-primary-strong` | Filled CTAs, active nav, badges, sent chat bubbles, links and other small text on light surfaces (white on it is 7.24:1) |
+| `danger` | `#a12b3b` | `text-danger` `bg-danger` | Error/destructive states |
+| `warning` | `#805b12` | `text-warning` | Pending/warning labels |
+| `info` | `#0e2a48` | `text-info` | Information |
+| `control-border` | `#7b8491` | `border-control-border` | Form control outlines |
 | `success` | `#1b7c4f` | `bg-success` `text-success` | Verified badges, success states |
 
-> **Not yet defined in code.** `warning`, `danger`, and `info` are used conceptually by components (alerts, red-flag indicators, pending states) but are **not** in `globals.css` yet. Add them to the `@theme` block (`--color-warning`, `--color-danger`, `--color-info`) before first use — do not hardcode a hex in a component.
+> Semantic tokens above are implemented in globals.css. Primary remains the brand colour; use primary-strong for small text and filled CTA contrast. Text-subtle was darkened for readable metadata. These accessibility corrections preserve the existing palette.
 
 ### Rules
 
@@ -130,13 +135,15 @@ Base unit: **4px.** All spacing must be a multiple.
 
 ## 5. Radii
 
-| Token | Value | Usage |
-|---|---|---|
-| `radius-sm` | 4px | Tags, small badges |
-| `radius-md` | 8px | Inputs, buttons |
-| `radius-lg` | 12px | Cards |
-| `radius-xl` | 16px | Modals, large surfaces, dashboard quick-link cards (confirmed against Figma — the `Card` `dashboard` variant uses this radius, not `radius-lg`) |
-| `radius-full` | 9999px | Pills, avatars |
+| Token | Value | Tailwind class | Usage |
+|---|---|---|---|
+| `radius-sm` | 4px | `rounded-sm` | Tags, small badges |
+| `radius-md` | 8px | `rounded-lg` | Inputs, buttons |
+| `radius-lg` | 12px | `rounded-xl` | Cards |
+| `radius-xl` | 16px | `rounded-2xl` | Modals, large surfaces, dashboard quick-link cards (confirmed against Figma — the `Card` `dashboard` variant uses this radius, not `radius-lg`) |
+| `radius-full` | 9999px | `rounded-full` | Pills, avatars |
+
+Tailwind v4's class names are one step off these token names (`rounded-xl` is 12px, `rounded-2xl` is 16px), so use the class column. Screens use `Card` as it is and add only spacing and layout utilities; they do not set their own radius, border or shadow on it.
 
 ---
 
@@ -162,6 +169,7 @@ Components live under `frontend/app/components/` (`ui/` primitives, plus `public
 | Component | Path | Notes |
 |---|---|---|
 | `Button` | `/components/ui/button.tsx` | Variants: `primary`, `secondary`, `ghost`, `destructive`. Sizes: `sm`, `md`, `lg`. |
+| `ButtonLink` | `/components/ui/ButtonLink.tsx` | A Next `Link` with `Button`'s variants and sizes, for actions that navigate. Use it instead of styling a `Link` as a filled button: it keeps an outline in forced-colors mode. |
 | `Input` | `/components/ui/input.tsx` | Text, email, password, number. Include `Label` and error state. |
 | `Textarea` | `/components/ui/textarea.tsx` | Auto-grow optional. |
 | `Select` | `/components/ui/select.tsx` | Single + multi-select. |
@@ -287,6 +295,7 @@ Design first at `lg` (desktop), then verify at `md` (tablet) and `sm` (mobile).
 - **Form fields:** every input has a visible label (not just placeholder)
 - **Modal focus trap:** focus stays inside modal until dismissed
 - **Colour is never the only signal:** pair with icon, text, or shape
+- **Forced colours:** Windows High Contrast removes fills, so controls keep a border there; a link that looks like a button must be a `ButtonLink`
 
 ---
 
@@ -314,6 +323,7 @@ Track changes here so devs know when to re-sync tokens.
 
 | Date | Change | Author |
 |---|---|---|
-| _yyyy-mm-dd_ | Initial version. | _Name_ |
-| 2026-08-04 | Corrected `text-dark` (`#1b1b1f`→`#171a1f`) and `text-body`/`text-muted` (`#5f6b76`→`#565d6d`) to match real values sampled from Figma's Owner Home screen. Filled in exact `shadow-sm` value (confirmed from Figma, matches existing `Card` `dashboard` variant). Noted `radius-xl` also covers dashboard quick-link cards. | Claude Code (Phase 5, Feature 1 — shared foundation) |
-
+| 2026-07-31 | Initial version. | Nguyen Ta |
+| 2026-08-04 | Corrected `text-dark` (`#1b1b1f`→`#171a1f`) and `text-body`/`text-muted` (`#5f6b76`→`#565d6d`) to match real values sampled from Figma's Owner Home screen. Filled in exact `shadow-sm` value (confirmed from Figma, matches existing `Card` `dashboard` variant). Noted `radius-xl` also covers dashboard quick-link cards. | Thi Ngoc Anh Nguyen |
+| 2026-10-03 | Added accessible semantic/control tokens, heading scale, keyboard focus, forced-colour and print fallbacks for the provider UI review. Shared primitives merge caller utilities intentionally; Modal uses the native dialog focus lifecycle. | Trung Phong Hoang |
+| 2026-10-21 | `Card` `dashboard` variant back to 16px (`rounded-2xl`); screens no longer override its radius, border or shadow, and the radii table maps tokens to Tailwind classes. `primary` is for accents only; small text and fills behind text use `primary-strong`. Added `ButtonLink` so button-styled links keep an outline in forced-colors mode. | Trung Phong Hoang |

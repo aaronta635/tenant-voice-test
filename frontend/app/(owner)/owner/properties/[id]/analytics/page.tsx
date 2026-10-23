@@ -1,18 +1,11 @@
-import Link from 'next/link';
+import { Suspense } from 'react';
+import ListingAnalytics from '@/app/components/owner/ListingAnalytics';
 
-type Props = {
-  params: Promise<{ id: string }>;
-};
-
-export default async function PropertyAnalyticsPage({ params }: Props) {
-  const { id } = await params;
-
+/** /owner/properties/[id]/analytics?days=: the range lives in the URL, read on the client. */
+export default function PropertyAnalyticsPage() {
   return (
-    <div>
-      <h1>Property Analytics</h1>
-      <p>Property: {id}</p>
-      <Link href={`/owner/properties/${id}/qr-code`}>Get QR Code</Link>
-      <Link href={`/owner/properties/${id}`}>Property Details</Link>
-    </div>
+    <Suspense fallback={<p role="status" className="text-sm text-text-body">Loading analytics…</p>}>
+      <ListingAnalytics />
+    </Suspense>
   );
 }

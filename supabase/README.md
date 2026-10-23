@@ -3,6 +3,10 @@
 Database schema, Row-Level Security, and demo data.
 The FastAPI backend (`../backend`) is the only client of this database.
 
+> **On the shared Supabase project** (the one the mobile app and the rental
+> web use), run only [`shared/`](shared/README.md). Never run the migrations,
+> `seed.sql` or the reset below there: they are for the old web-only project.
+
 ## Files
 
 | File | Purpose |
@@ -14,7 +18,8 @@ The FastAPI backend (`../backend`) is the only client of this database.
 | `migrations/0005_messaging.sql` | Extends `conversations` for rental (tenant↔owner) threads |
 | `migrations/0006_platform_schema.sql` | `service_categories`, `connections`, `subscription_plans`, `user_subscriptions`, `faqs`, `notifications`, `property_inspections`, `platform_settings` |
 | `migrations/0007_platform_rls.sql` | RLS for the platform tables |
-| `seed.sql` | Demo data — the single source of truth for every screen |
+| `seed.sql` | Base demo accounts and data |
+| `../backend/scripts/seed_provider_demo.py` | Additive Service Provider walkthrough data for Amelia |
 
 **Apply order:** `0001` → `0002` → `0003` → `0004` → `0005` → `0006` → `0007` → `seed.sql`.
 
@@ -53,6 +58,34 @@ Then run `0001` → `0007` → `seed.sql`.
 > normally sets up for the `service_role`. `0002_rls.sql` re-grants them
 > explicitly, which is why the migrations must be run in full after a reset —
 > otherwise every backend query fails with `permission denied for table ...`.
+
+## Service Provider walkthrough
+
+After the base seed has been applied, add a fuller dataset for the existing
+**Amelia / Whitlock Property** account:
+
+```bash
+cd backend
+.venv/bin/python -m scripts.seed_provider_demo             # preview only
+.venv/bin/python -m scripts.seed_provider_demo --apply     # insert missing rows
+```
+
+Uses the backend's existing `.env` connection. Point it at a disposable copy of the
+shared project: demo rows must never be written to the live one, where the mobile
+app shows them at once (`docs/demo-features.md`). It validates the fixed demo account
+IDs/names and Amelia's `@demo.test` identity before writing. It adds 24 bookings (18 completed),
+9 reviews, 6 conversations, invoice/payment/fee records, and demo network activity.
+Only the fictional accounts from `seed.sql` participate. No real payments or email
+are sent. The provider workspace and public profile, and the workspaces of the
+demo landlords and tenants, display a **Demo** notice.
+
+Login: **Provider** → `amelia@demo.test` / `password123` (unless the demo password
+has since been changed). Public profile: `/providers/amelia-whitlock`.
+
+Dates are relative to the first run; use `--date YYYY-MM-DD` to choose the anchor.
+IDs are stable across runs: rerunning skips existing records and preserves changes
+made during a walkthrough. It does not move existing bookings to new dates or
+reset the database. To refresh dates later, reschedule the demo bookings in the UI.
 
 ## Schema overview
 

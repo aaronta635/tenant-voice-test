@@ -1,0 +1,24 @@
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.idea/
+.vscode/
+.cursor/
+*.swp
+
+# Office temp lock files (e.g. ~$Handover.docx)
+~$*
+
+# Generated review evidence, pitch video and brand exports (large binaries).
+output/
+
+# Environment — never commit real secrets.
+# Each service keeps its own .env; .env.example is the tracked template.
+.env
+.env.local
+*.env.local
